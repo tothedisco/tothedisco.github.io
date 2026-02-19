@@ -136,7 +136,7 @@ let joystickActive = false, joystickId = null;
 
 // ===== SKILLS =====
 const SKILLS = [
-  {icon:'⚔️', name:'공격력 UP', desc:'데미지 +50%', apply:()=>{atkPower*=1.5;}},
+  {icon:'⚔️', name:'공격력 UP', desc:'데미지 +40%', apply:()=>{atkPower*=1.4;}},
   {icon:'👟', name:'이동속도 UP', desc:'이동속도 +20%', apply:()=>{moveSpeed*=1.2;}},
   {icon:'⚡', name:'공격속도 UP', desc:'공격속도 +25%', apply:()=>{atkSpeed*=0.75;}},
   {icon:'🦴', name:'멀티샷', desc:'투사체 +1', apply:()=>{multiShot++;}},
@@ -465,9 +465,9 @@ function getInput() {
 
 // ===== GAME MANAGEMENT =====
 function resetState() {
-  hp = 10; maxHp = 10; xp = 0; xpNeeded = 5; level = 1; kills = 0; survivalTime = 0;
-  atkPower = 1; moveSpeed = 8; atkSpeed = 1.0; atkTimer = 0; multiShot = 1;
-  barkUnlocked = false; barkCooldown = 5; barkTimer = 0;
+  hp = 20; maxHp = 20; xp = 0; xpNeeded = 5; level = 1; kills = 0; survivalTime = 0;
+  atkPower = 3; moveSpeed = 10; atkSpeed = 0.6; atkTimer = 0; multiShot = 1;
+  barkUnlocked = false; barkCooldown = 4; barkTimer = 0;
   invincibleTimer = 0;
 
   // Clear old objects
@@ -563,8 +563,8 @@ function spawnEnemy() {
   const mesh = createCat(color);
   mesh.position.set(x, 0, z);
   scene.add(mesh);
-  const hpScale = 1 + survivalTime / 60;
-  enemies.push({mesh, hp: 2 * hpScale, speed: 2 + Math.random() * 1.5 + survivalTime * 0.02});
+  const hpScale = 1 + survivalTime / 120;
+  enemies.push({mesh, hp: 2 * hpScale, speed: 2.5 + Math.random() * 1 + survivalTime * 0.01});
 }
 
 function fireProjectile() {
@@ -584,16 +584,21 @@ function fireProjectile() {
   const dz = closest.mesh.position.z - player.z;
   const baseAngle = Math.atan2(dx, dz);
 
+  const len = Math.sqrt(dx*dx + dz*dz) || 1;
+  const ndx = dx/len, ndz = dz/len;
   for (let i = 0; i < multiShot; i++) {
-    const spread = multiShot > 1 ? (i - (multiShot-1)/2) * 0.15 : 0;
-    const angle = baseAngle + spread;
+    const spread = multiShot > 1 ? (i - (multiShot-1)/2) * 0.2 : 0;
+    // Rotate direction by spread angle
+    const cos = Math.cos(spread), sin = Math.sin(spread);
+    const sdx = ndx * cos - ndz * sin;
+    const sdz = ndx * sin + ndz * cos;
     const mesh = createBone();
     mesh.position.set(player.x, 1.2, player.z);
     scene.add(mesh);
     projectiles.push({
       mesh,
-      vx: Math.sin(angle) * 20,
-      vz: Math.cos(angle) * 20,
+      vx: sdx * 35,
+      vz: sdz * 35,
       life: 2,
       dmg: atkPower
     });
@@ -692,11 +697,11 @@ function update(dt) {
   camera.lookAt(player.x, 0, player.z);
 
   // Spawn
-  const spawnRate = Math.max(0.3, 2 - survivalTime * 0.01);
+  const spawnRate = Math.max(0.4, 2.5 - survivalTime * 0.008);
   spawnTimer -= dt;
   if (spawnTimer <= 0) {
     spawnTimer = spawnRate;
-    const count = 1 + Math.floor(survivalTime / 30);
+    const count = 1 + Math.floor(survivalTime / 45);
     for (let i = 0; i < count; i++) spawnEnemy();
   }
 
