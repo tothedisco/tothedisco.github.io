@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>💥 BREAKOUT 💥</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+  canvas { display: block; cursor: none; }
+  #overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    transition: opacity 0.3s;
+  }
+  #overlay.hidden { opacity: 0; pointer-events: none; }
+  #overlay h1 {
+    font-size: clamp(2rem, 8vw, 4rem);
+    font-weight: 900;
+    background: linear-gradient(90deg, #00f5d4, #ff006e, #8338ec);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: pulse 1.5s ease-in-out infinite;
+    margin-bottom: 0.5rem;
+  }
+  #overlay .sub { color: #888; font-size: 1.1rem; margin-bottom: 2rem; }
+  #overlay .score-display { color: #fff; font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+  #overlay .combo-display { color: #888; margin-bottom: 2rem; }
+  #btn {
+    padding: 14px 48px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #3a86ff, #8338ec);
+    color: #fff;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 30px rgba(131,56,236,0.5);
+    transition: transform 0.15s;
+  }
+  #btn:hover { transform: scale(1.06); }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="overlay">
+  <h1 id="title">💥 BREAKOUT 💥</h1>
+  <div class="sub" id="sub">벽돌을 부숴라!</div>
+  <div class="score-display hidden" id="scoreDisp"></div>
+  <div class="combo-display hidden" id="comboDisp"></div>
+  <button id="btn">START</button>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const canvas = $('#c');
+const ctx = canvas.getContext('2d');
+const overlay = $('#overlay');
+const titleEl = $('#title');
+const subEl = $('#sub');
+const scoreDisp = $('#scoreDisp');
+const comboDisp = $('#comboDisp');
+const btn = $('#btn');
+
+// ─── Config ──────────────────────────────
+const PADDLE_W = 120, PADDLE_H = 14, BALL_R = 8, BALL_SPEED = 6;
+const BRICK_ROWS = 7, BRICK_COLS = 10, BRICK_H = 28, BRICK_GAP = 4, BRICK_TOP = 60;
+const COLORS = [
+  { bg:'#ff006e', glow:'#ff006e88' },
+  { bg:'#fb5607', glow:'#fb560788' },
+  { bg:'#ffbe0b', glow:'#ffbe0b88' },
+  { bg:'#00f5d4', glow:'#00f5d488' },
+  { bg:'#8338ec', glow:'#8338ec88' },
+  { bg:'#3a86ff', glow:'#3a86ff88' },
+  { bg:'#ff595e', glow:'#ff595e88' },
+];
+
+let W, H, paddle, ball, bricks, particles, score, combo, comboTimer, shake, lives, mouseX, running;
+
+function resize() {
+  W = canvas.width = Math.min(window.innerWidth, 800);
+  H = canvas.height = Math.min(window.innerHeight, 900);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ─── Particles ───────────────────────────
+function spawn(x, y, color, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const s = 2 + Math.random() * 6;
+    particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s, life:1, ml: 0.4+Math.random()*0.6, color, size: 2+Math.random()*5, g: 0.15 });
+  }
+}
+function ring(x, y, color) {
+  for (let i = 0; i < 24; i++) {
+    const a = (i/24)*Math.PI*2, s = 3+Math.random()*2;
+    particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s, life:1, ml:0.3, color, size:3, g:0 });
+  }
+}
+function comboBurst(x, y, c) {
+  const cols = ['#ffbe0b','#ff006e','#8338ec','#00f5d4'];
+  const col = cols[c % cols.length];
+  for (let i = 0; i < 30+c*5; i++) {
+    const a = Math.random()*Math.PI*2, s = 4+Math.random()*8;
+    particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s, life:1, ml:0.5+Math.random()*0.5, color:col, size:3+Math.random()*6, g:0.1 });
+  }
+}
+
+// ─── Init ────────────────────────────────
+function init() {
+  resize();
+  const bw = (W - BRICK_GAP*(BRICK_COLS+1)) / BRICK_COLS;
+  bricks = [];
+  for (let r = 0; r < BRICK_ROWS; r++) {
+    const { bg, glow } = COLORS[r % COLORS.length];
+    const hp = r < 2 ? 3 : r < 4 ? 2 : 1;
+    for (let c = 0; c < BRICK_COLS; c++) {
+      bricks.push({ x: BRICK_GAP + c*(bw+BRICK_GAP), y: BRICK_TOP + r*(BRICK_H+BRICK_GAP), w: bw, h: BRICK_H, hp, mhp: hp, color: bg, glow });
+    }
+  }
+  paddle = { x: W/2 - PADDLE_W/2 };
+  ball = { x: W/2, y: H-60, vx: BALL_SPEED*0.7, vy: -BALL_SPEED, trail: [] };
+  particles = [];
+  score = 0; combo = 0; comboTimer = 0; shake = 0; lives = 3; mouseX = W/2;
+}
+
+// ─── Input ───────────────────────────────
+canvas.addEventListener('mousemove', e => { mouseX = e.clientX - canvas.getBoundingClientRect().left; });
+canvas.addEventListener('touchmove', e => { if(e.touches[0]) mouseX = e.touches[0].clientX - canvas.getBoundingClientRect().left; }, { passive:true });
+canvas.addEventListener('touchstart', e => { if(e.touches[0]) mouseX = e.touches[0].clientX - canvas.getBoundingClientRect().left; }, { passive:true });
+
+// ─── Overlay ─────────────────────────────
+function showOverlay(title, sub, sc, cmb, btnText, btnColor) {
+  titleEl.textContent = title;
+  subEl.textContent = sub;
+  if (sc !== null) { scoreDisp.textContent = 'SCORE: ' + sc; scoreDisp.classList.remove('hidden'); } else { scoreDisp.classList.add('hidden'); }
+  if (cmb !== null) { comboDisp.textContent = 'MAX COMBO: ' + cmb + 'x'; comboDisp.classList.remove('hidden'); } else { comboDisp.classList.add('hidden'); }
+  btn.textContent = btnText;
+  btn.style.background = btnColor;
+  overlay.classList.remove('hidden');
+}
+
+function hideOverlay() { overlay.classList.add('hidden'); }
+
+// ─── Game Loop ───────────────────────────
+const dt = 1/60;
+
+function loop() {
+  if (!running) return;
+
+  // Paddle
+  paddle.x += (mouseX - PADDLE_W/2 - paddle.x) * 0.25;
+  paddle.x = Math.max(0, Math.min(W - PADDLE_W, paddle.x));
+
+  // Ball
+  ball.trail.push({ x: ball.x, y: ball.y });
+  if (ball.trail.length > 15) ball.trail.shift();
+  ball.x += ball.vx; ball.y += ball.vy;
+
+  // Walls
+  if (ball.x - BALL_R < 0) { ball.x = BALL_R; ball.vx = Math.abs(ball.vx); }
+  if (ball.x + BALL_R > W) { ball.x = W - BALL_R; ball.vx = -Math.abs(ball.vx); }
+  if (ball.y - BALL_R < 0) { ball.y = BALL_R; ball.vy = Math.abs(ball.vy); }
+
+  // Bottom
+  if (ball.y + BALL_R > H) {
+    lives--; combo = 0; shake = 15;
+    spawn(ball.x, H, '#ff006e', 40);
+    if (lives <= 0) { running = false; showOverlay('💀 GAME OVER 💀', '', score, combo, 'RETRY', 'linear-gradient(135deg,#ff595e,#fb5607)'); renderFrame(); return; }
+    ball.x = W/2; ball.y = H-60;
+    ball.vx = BALL_SPEED * (Math.random()>0.5?0.7:-0.7); ball.vy = -BALL_SPEED;
+  }
+
+  // Paddle hit
+  const py = H - 40;
+  if (ball.vy > 0 && ball.y+BALL_R > py && ball.y+BALL_R < py+PADDLE_H+4 && ball.x > paddle.x-4 && ball.x < paddle.x+PADDLE_W+4) {
+    const hit = (ball.x - paddle.x) / PADDLE_W;
+    const angle = (hit - 0.5) * Math.PI * 0.7;
+    const spd = Math.hypot(ball.vx, ball.vy);
+    ball.vx = Math.sin(angle)*spd; ball.vy = -Math.cos(angle)*spd;
+    ball.y = py - BALL_R;
+    spawn(ball.x, py, '#00f5d4', 10);
+    shake = 3;
+  }
+
+  // Bricks
+  comboTimer -= dt;
+  if (comboTimer <= 0) combo = 0;
+  for (let i = bricks.length-1; i >= 0; i--) {
+    const b = bricks[i];
+    if (ball.x+BALL_R > b.x && ball.x-BALL_R < b.x+b.w && ball.y+BALL_R > b.y && ball.y-BALL_R < b.y+b.h) {
+      const ox = Math.min(ball.x+BALL_R-b.x, b.x+b.w-(ball.x-BALL_R));
+      const oy = Math.min(ball.y+BALL_R-b.y, b.y+b.h-(ball.y-BALL_R));
+      if (ox < oy) ball.vx = -ball.vx; else ball.vy = -ball.vy;
+      b.hp--;
+      const cx = b.x+b.w/2, cy = b.y+b.h/2;
+      if (b.hp <= 0) {
+        bricks.splice(i, 1);
+        combo++; comboTimer = 2;
+        score += 10 * combo;
+        spawn(cx, cy, b.color, 25+combo*3);
+        ring(cx, cy, b.glow);
+        shake = Math.min(5+combo, 20);
+        if (combo >= 3) comboBurst(cx, cy, combo);
+        if (bricks.length === 0) {
+          running = false;
+          for (let j = 0; j < 200; j++) spawn(W/2+(Math.random()-0.5)*W, H/2+(Math.random()-0.5)*H, COLORS[j%COLORS.length].bg, 3);
+          setTimeout(() => showOverlay('🎉 CLEAR! 🎉', '', score, combo, 'AGAIN', 'linear-gradient(135deg,#ffbe0b,#ff006e)'), 500);
+          renderFrame(); return;
+        }
+      } else {
+        spawn(cx, cy, b.color, 8); shake = 3;
+      }
+      break;
+    }
+  }
+
+  // Particles
+  for (let i = particles.length-1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += p.g; p.vx *= 0.98;
+    p.life -= dt / p.ml;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+  shake *= 0.85;
+
+  renderFrame();
+  requestAnimationFrame(loop);
+}
+
+function renderFrame() {
+  ctx.save();
+  if (shake > 0.5) ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake);
+
+  // BG
+  ctx.fillStyle = '#0a0a0f'; ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#ffffff08'; ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  // Bricks
+  for (const b of bricks) {
+    ctx.globalAlpha = 0.4 + (b.hp/b.mhp)*0.6;
+    ctx.shadowColor = b.glow; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.roundRect(b.x, b.y, b.w, b.h, 4);
+    ctx.fillStyle = b.color; ctx.fill();
+    const g = ctx.createLinearGradient(b.x, b.y, b.x, b.y+b.h);
+    g.addColorStop(0, 'rgba(255,255,255,0.25)'); g.addColorStop(1, 'rgba(0,0,0,0.15)');
+    ctx.fillStyle = g; ctx.fill();
+    if (b.hp < b.mhp) {
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      const cx = b.x+b.w*0.4, cy = b.y+b.h*0.5;
+      ctx.moveTo(cx, b.y); ctx.lineTo(cx+5, cy); ctx.lineTo(cx-3, b.y+b.h); ctx.stroke();
+    }
+    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+  }
+
+  // Ball trail
+  for (let i = 0; i < ball.trail.length; i++) {
+    const t = ball.trail[i], a = (i/ball.trail.length)*0.4, s = (i/ball.trail.length)*BALL_R;
+    ctx.beginPath(); ctx.arc(t.x, t.y, s, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(0,245,212,${a})`; ctx.fill();
+  }
+
+  // Ball
+  ctx.shadowColor = '#00f5d4'; ctx.shadowBlur = 20;
+  ctx.beginPath(); ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI*2);
+  const bg = ctx.createRadialGradient(ball.x-2, ball.y-2, 0, ball.x, ball.y, BALL_R);
+  bg.addColorStop(0, '#fff'); bg.addColorStop(0.5, '#00f5d4'); bg.addColorStop(1, '#3a86ff');
+  ctx.fillStyle = bg; ctx.fill(); ctx.shadowBlur = 0;
+
+  // Paddle
+  const paddleY = H - 40;
+  ctx.shadowColor = '#3a86ff'; ctx.shadowBlur = 15;
+  const pg = ctx.createLinearGradient(paddle.x, paddleY, paddle.x+PADDLE_W, paddleY);
+  pg.addColorStop(0, '#3a86ff'); pg.addColorStop(0.5, '#00f5d4'); pg.addColorStop(1, '#8338ec');
+  ctx.beginPath(); ctx.roundRect(paddle.x, paddleY, PADDLE_W, PADDLE_H, 7);
+  ctx.fillStyle = pg; ctx.fill(); ctx.shadowBlur = 0;
+
+  // Particles
+  for (const p of particles) {
+    ctx.globalAlpha = p.life;
+    ctx.shadowColor = p.color; ctx.shadowBlur = 8;
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size*p.life, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+
+  // HUD
+  ctx.font = 'bold 18px Inter, sans-serif'; ctx.fillStyle = '#fff';
+  ctx.textAlign = 'left'; ctx.fillText('SCORE: ' + score, 12, 30);
+  ctx.textAlign = 'right';
+  let hearts = ''; for (let i = 0; i < lives; i++) hearts += '❤️';
+  ctx.fillText(hearts, W-12, 30);
+  if (combo >= 2) {
+    ctx.textAlign = 'center';
+    ctx.font = `bold ${20+combo*2}px Inter, sans-serif`;
+    ctx.fillStyle = COLORS[combo % COLORS.length].bg;
+    ctx.shadowColor = COLORS[combo % COLORS.length].glow; ctx.shadowBlur = 20;
+    ctx.fillText(combo + 'x COMBO!', W/2, 48);
+    ctx.shadowBlur = 0;
+  }
+
+  ctx.restore();
+
+  // Keep rendering particles even after game ends
+  if (!running && particles.length > 0) {
+    for (let i = particles.length-1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx; p.y += p.vy; p.vy += p.g; p.vx *= 0.98;
+      p.life -= dt / p.ml;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+    requestAnimationFrame(renderFrame);
+  }
+}
+
+// ─── Start ───────────────────────────────
+btn.addEventListener('click', () => {
+  hideOverlay();
+  init();
+  running = true;
+  requestAnimationFrame(loop);
+});
+</script>
+</body>
+</html>

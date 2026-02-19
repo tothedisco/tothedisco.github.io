@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🎵 탭 리듬 게임</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    body {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      height: 100vh;
+      max-height: 700px;
+      background: linear-gradient(180deg, #0f0f23 0%, #1a1a3e 100%);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 50px rgba(0, 200, 255, 0.3);
+    }
+
+    #ui {
+      position: absolute;
+      top: 10px;
+      left: 0;
+      width: 100%;
+      padding: 0 15px;
+      display: flex;
+      justify-content: space-between;
+      color: white;
+      font-size: 14px;
+      z-index: 100;
+    }
+
+    #score-display {
+      font-size: 24px;
+      font-weight: bold;
+      color: #00ffff;
+      text-shadow: 0 0 10px #00ffff;
+    }
+
+    #combo-display {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      font-weight: bold;
+      color: #ffcc00;
+      text-shadow: 0 0 20px #ffcc00;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.1s;
+    }
+
+    #combo-display.show {
+      opacity: 1;
+    }
+
+    #judgment {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      font-weight: bold;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+
+    #judgment.perfect { color: #00ffff; text-shadow: 0 0 20px #00ffff; }
+    #judgment.good { color: #00ff00; text-shadow: 0 0 20px #00ff00; }
+    #judgment.miss { color: #ff3333; text-shadow: 0 0 20px #ff3333; }
+
+    #game-area {
+      position: absolute;
+      top: 60px;
+      left: 0;
+      right: 0;
+      bottom: 120px;
+    }
+
+    .lane {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 25%;
+      border-left: 1px solid rgba(255,255,255,0.1);
+    }
+    .lane:nth-child(1) { left: 0%; }
+    .lane:nth-child(2) { left: 25%; }
+    .lane:nth-child(3) { left: 50%; }
+    .lane:nth-child(4) { left: 75%; border-right: 1px solid rgba(255,255,255,0.1); }
+
+    .note {
+      position: absolute;
+      width: calc(25% - 10px);
+      height: 30px;
+      border-radius: 8px;
+      margin-left: 5px;
+      transition: transform 0.05s;
+    }
+
+    .note.lane-0 { left: 0%; background: linear-gradient(180deg, #ff6b6b, #c92a2a); box-shadow: 0 0 15px #ff6b6b; }
+    .note.lane-1 { left: 25%; background: linear-gradient(180deg, #4ecdc4, #087f5b); box-shadow: 0 0 15px #4ecdc4; }
+    .note.lane-2 { left: 50%; background: linear-gradient(180deg, #ffe66d, #fab005); box-shadow: 0 0 15px #ffe66d; }
+    .note.lane-3 { left: 75%; background: linear-gradient(180deg, #a29bfe, #6c5ce7); box-shadow: 0 0 15px #a29bfe; }
+
+    .note.hit {
+      animation: noteHit 0.2s ease-out forwards;
+    }
+
+    @keyframes noteHit {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(1.5); opacity: 0; }
+    }
+
+    #hit-line {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #ffe66d, #a29bfe);
+      box-shadow: 0 0 20px rgba(255,255,255,0.5);
+    }
+
+    #buttons {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 120px;
+      display: flex;
+    }
+
+    .btn {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: rgba(255,255,255,0.8);
+      border: none;
+      cursor: pointer;
+      transition: all 0.1s;
+      user-select: none;
+    }
+
+    .btn:nth-child(1) { background: rgba(255, 107, 107, 0.3); }
+    .btn:nth-child(2) { background: rgba(78, 205, 196, 0.3); }
+    .btn:nth-child(3) { background: rgba(255, 230, 109, 0.3); }
+    .btn:nth-child(4) { background: rgba(162, 155, 254, 0.3); }
+
+    .btn:active, .btn.active {
+      transform: scale(0.95);
+    }
+    .btn:nth-child(1):active, .btn:nth-child(1).active { background: rgba(255, 107, 107, 0.8); }
+    .btn:nth-child(2):active, .btn:nth-child(2).active { background: rgba(78, 205, 196, 0.8); }
+    .btn:nth-child(3):active, .btn:nth-child(3).active { background: rgba(255, 230, 109, 0.8); }
+    .btn:nth-child(4):active, .btn:nth-child(4).active { background: rgba(162, 155, 254, 0.8); }
+
+    .btn span {
+      opacity: 0.5;
+      font-size: 14px;
+    }
+
+    #start-screen, #result-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+      color: white;
+    }
+
+    #start-screen h1 {
+      font-size: 36px;
+      margin-bottom: 20px;
+      color: #00ffff;
+      text-shadow: 0 0 20px #00ffff;
+    }
+
+    #start-screen p {
+      margin-bottom: 30px;
+      color: #aaa;
+      text-align: center;
+      padding: 0 20px;
+    }
+
+    .menu-btn {
+      padding: 15px 40px;
+      font-size: 20px;
+      background: linear-gradient(135deg, #00ffff, #0088ff);
+      color: #000;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      font-weight: bold;
+      margin: 10px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .menu-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+    }
+
+    #result-screen h2 {
+      font-size: 32px;
+      margin-bottom: 30px;
+      color: #ffcc00;
+    }
+
+    #result-screen .stat {
+      font-size: 18px;
+      margin: 10px 0;
+    }
+
+    #result-screen .final-score {
+      font-size: 48px;
+      color: #00ffff;
+      margin: 20px 0;
+      text-shadow: 0 0 20px #00ffff;
+    }
+
+    .hidden { display: none !important; }
+
+    #progress-bar {
+      position: absolute;
+      top: 50px;
+      left: 10px;
+      right: 10px;
+      height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px;
+    }
+
+    #progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00ffff, #ff00ff);
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.1s;
+    }
+
+    #difficulty-select {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .diff-btn {
+      padding: 10px 20px;
+      background: rgba(255,255,255,0.1);
+      border: 2px solid rgba(255,255,255,0.3);
+      color: white;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .diff-btn.selected {
+      background: rgba(0, 255, 255, 0.3);
+      border-color: #00ffff;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div id="ui">
+      <div id="score-display">0</div>
+      <div>
+        <span id="accuracy">100.0%</span>
+      </div>
+    </div>
+
+    <div id="progress-bar">
+      <div id="progress-fill"></div>
+    </div>
+
+    <div id="combo-display">0</div>
+    <div id="judgment"></div>
+
+    <div id="game-area">
+      <div class="lane"></div>
+      <div class="lane"></div>
+      <div class="lane"></div>
+      <div class="lane"></div>
+      <div id="hit-line"></div>
+    </div>
+
+    <div id="buttons">
+      <div class="btn" data-lane="0"><span>D</span></div>
+      <div class="btn" data-lane="1"><span>F</span></div>
+      <div class="btn" data-lane="2"><span>J</span></div>
+      <div class="btn" data-lane="3"><span>K</span></div>
+    </div>
+
+    <div id="start-screen">
+      <h1>🎵 탭 리듬</h1>
+      <p>노트가 내려오면 타이밍에 맞춰 탭!<br>PC: D F J K 키</p>
+      <div id="difficulty-select">
+        <button class="diff-btn selected" data-diff="easy">Easy</button>
+        <button class="diff-btn" data-diff="normal">Normal</button>
+        <button class="diff-btn" data-diff="hard">Hard</button>
+      </div>
+      <button class="menu-btn" id="start-btn">🎮 시작</button>
+    </div>
+
+    <div id="result-screen" class="hidden">
+      <h2>🎉 결과</h2>
+      <div class="final-score" id="final-score">0</div>
+      <div class="stat">Perfect: <span id="r-perfect">0</span></div>
+      <div class="stat">Good: <span id="r-good">0</span></div>
+      <div class="stat">Miss: <span id="r-miss">0</span></div>
+      <div class="stat">Max Combo: <span id="r-combo">0</span></div>
+      <div class="stat">정확도: <span id="r-accuracy">0%</span></div>
+      <button class="menu-btn" id="retry-btn">🔄 다시하기</button>
+    </div>
+  </div>
+
+  <script>
+    // 게임 상태
+    const state = {
+      running: false,
+      score: 0,
+      combo: 0,
+      maxCombo: 0,
+      perfect: 0,
+      good: 0,
+      miss: 0,
+      difficulty: 'normal',
+      noteSpeed: 5,
+      songDuration: 60000,
+      startTime: 0,
+      notes: [],
+      beatmap: []
+    };
+
+    // DOM 요소
+    const gameArea = document.getElementById('game-area');
+    const scoreDisplay = document.getElementById('score-display');
+    const comboDisplay = document.getElementById('combo-display');
+    const accuracyDisplay = document.getElementById('accuracy');
+    const judgment = document.getElementById('judgment');
+    const progressFill = document.getElementById('progress-fill');
+    const startScreen = document.getElementById('start-screen');
+    const resultScreen = document.getElementById('result-screen');
+    const buttons = document.querySelectorAll('.btn');
+    const diffBtns = document.querySelectorAll('.diff-btn');
+
+    // 난이도 설정
+    const difficulties = {
+      easy: { speed: 4, density: 0.4, songDuration: 45000 },
+      normal: { speed: 5, density: 0.6, songDuration: 60000 },
+      hard: { speed: 7, density: 0.85, songDuration: 75000 }
+    };
+
+    // 비트맵 생성 (자동 생성)
+    function generateBeatmap() {
+      const beatmap = [];
+      const diff = difficulties[state.difficulty];
+      const interval = 500 / diff.density;
+      
+      for (let time = 2000; time < diff.songDuration - 2000; time += interval) {
+        // 랜덤하게 1~2개 노트 생성
+        const noteCount = Math.random() < 0.3 ? 2 : 1;
+        const lanes = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+        
+        for (let i = 0; i < noteCount; i++) {
+          beatmap.push({
+            time: time + Math.random() * 100,
+            lane: lanes[i]
+          });
+        }
+      }
+      
+      return beatmap.sort((a, b) => a.time - b.time);
+    }
+
+    // 노트 생성
+    function createNote(lane, time) {
+      const note = document.createElement('div');
+      note.className = `note lane-${lane}`;
+      note.dataset.lane = lane;
+      note.dataset.time = time;
+      note.style.top = '-30px';
+      gameArea.appendChild(note);
+      return note;
+    }
+
+    // 판정 표시
+    function showJudgment(type) {
+      judgment.textContent = type.toUpperCase();
+      judgment.className = type;
+      judgment.style.opacity = '1';
+      judgment.style.transform = 'translate(-50%, -50%) scale(1.2)';
+      
+      setTimeout(() => {
+        judgment.style.opacity = '0';
+        judgment.style.transform = 'translate(-50%, -50%) scale(1)';
+      }, 200);
+    }
+
+    // 콤보 표시
+    function updateCombo() {
+      if (state.combo > 5) {
+        comboDisplay.textContent = state.combo;
+        comboDisplay.classList.add('show');
+      } else {
+        comboDisplay.classList.remove('show');
+      }
+    }
+
+    // 점수 계산
+    function addScore(type) {
+      let points = 0;
+      
+      if (type === 'perfect') {
+        points = 100;
+        state.perfect++;
+        state.combo++;
+      } else if (type === 'good') {
+        points = 50;
+        state.good++;
+        state.combo++;
+      } else {
+        state.miss++;
+        state.combo = 0;
+      }
+      
+      points += state.combo * 10;
+      state.score += points;
+      
+      if (state.combo > state.maxCombo) {
+        state.maxCombo = state.combo;
+      }
+      
+      scoreDisplay.textContent = state.score.toLocaleString();
+      updateCombo();
+      updateAccuracy();
+    }
+
+    // 정확도 업데이트
+    function updateAccuracy() {
+      const total = state.perfect + state.good + state.miss;
+      if (total === 0) return;
+      
+      const accuracy = ((state.perfect * 100 + state.good * 50) / (total * 100) * 100).toFixed(1);
+      accuracyDisplay.textContent = accuracy + '%';
+    }
+
+    // 버튼 입력 처리
+    function handleInput(lane) {
+      if (!state.running) return;
+      
+      const hitLineY = gameArea.offsetHeight;
+      const hitRange = { perfect: 30, good: 60 };
+      
+      // 해당 레인의 노트 찾기
+      const noteElements = gameArea.querySelectorAll(`.note.lane-${lane}:not(.hit)`);
+      let closestNote = null;
+      let closestDistance = Infinity;
+      
+      noteElements.forEach(note => {
+        const noteY = note.offsetTop + 15;
+        const distance = Math.abs(noteY - hitLineY);
+        
+        if (distance < closestDistance && distance < hitRange.good) {
+          closestDistance = distance;
+          closestNote = note;
+        }
+      });
+      
+      if (closestNote) {
+        closestNote.classList.add('hit');
+        setTimeout(() => closestNote.remove(), 200);
+        
+        if (closestDistance < hitRange.perfect) {
+          showJudgment('perfect');
+          addScore('perfect');
+        } else {
+          showJudgment('good');
+          addScore('good');
+        }
+      }
+    }
+
+    // 노트 업데이트
+    function updateNotes(currentTime) {
+      const diff = difficulties[state.difficulty];
+      
+      // 새 노트 생성
+      while (state.notes.length > 0 && state.notes[0].time < currentTime + 2000) {
+        const noteData = state.notes.shift();
+        const note = createNote(noteData.lane, noteData.time);
+        state.beatmap.push({ element: note, time: noteData.time });
+      }
+      
+      // 노트 이동
+      const hitLineY = gameArea.offsetHeight;
+      const travelTime = 2000 / diff.speed;
+      
+      state.beatmap.forEach((note, index) => {
+        const elapsed = currentTime - note.time + travelTime;
+        const progress = elapsed / travelTime;
+        const noteY = progress * hitLineY - 30;
+        
+        note.element.style.top = noteY + 'px';
+        
+        // 미스 처리
+        if (noteY > hitLineY + 50 && !note.element.classList.contains('hit')) {
+          note.element.classList.add('hit');
+          showJudgment('miss');
+          addScore('miss');
+          setTimeout(() => note.element.remove(), 100);
+        }
+      });
+      
+      // 제거된 노트 정리
+      state.beatmap = state.beatmap.filter(n => !n.element.classList.contains('hit') || n.element.parentNode);
+    }
+
+    // 게임 루프
+    function gameLoop() {
+      if (!state.running) return;
+      
+      const currentTime = Date.now() - state.startTime;
+      const diff = difficulties[state.difficulty];
+      
+      // 진행률 업데이트
+      const progress = Math.min(currentTime / diff.songDuration * 100, 100);
+      progressFill.style.width = progress + '%';
+      
+      // 노트 업데이트
+      updateNotes(currentTime);
+      
+      // 게임 종료 체크
+      if (currentTime >= diff.songDuration && state.beatmap.length === 0) {
+        endGame();
+        return;
+      }
+      
+      requestAnimationFrame(gameLoop);
+    }
+
+    // 게임 시작
+    function startGame() {
+      state.running = true;
+      state.score = 0;
+      state.combo = 0;
+      state.maxCombo = 0;
+      state.perfect = 0;
+      state.good = 0;
+      state.miss = 0;
+      state.beatmap = [];
+      state.notes = generateBeatmap();
+      state.startTime = Date.now();
+      
+      scoreDisplay.textContent = '0';
+      accuracyDisplay.textContent = '100.0%';
+      comboDisplay.classList.remove('show');
+      
+      // 기존 노트 제거
+      gameArea.querySelectorAll('.note').forEach(n => n.remove());
+      
+      startScreen.classList.add('hidden');
+      resultScreen.classList.add('hidden');
+      
+      gameLoop();
+    }
+
+    // 게임 종료
+    function endGame() {
+      state.running = false;
+      
+      document.getElementById('final-score').textContent = state.score.toLocaleString();
+      document.getElementById('r-perfect').textContent = state.perfect;
+      document.getElementById('r-good').textContent = state.good;
+      document.getElementById('r-miss').textContent = state.miss;
+      document.getElementById('r-combo').textContent = state.maxCombo;
+      
+      const total = state.perfect + state.good + state.miss;
+      const accuracy = total > 0 ? ((state.perfect * 100 + state.good * 50) / (total * 100) * 100).toFixed(1) : 0;
+      document.getElementById('r-accuracy').textContent = accuracy + '%';
+      
+      resultScreen.classList.remove('hidden');
+    }
+
+    // 이벤트 리스너
+    buttons.forEach(btn => {
+      const lane = parseInt(btn.dataset.lane);
+      
+      // 터치 이벤트
+      btn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        btn.classList.add('active');
+        handleInput(lane);
+      });
+      
+      btn.addEventListener('touchend', () => {
+        btn.classList.remove('active');
+      });
+      
+      // 마우스 이벤트 (PC)
+      btn.addEventListener('mousedown', () => {
+        btn.classList.add('active');
+        handleInput(lane);
+      });
+      
+      btn.addEventListener('mouseup', () => {
+        btn.classList.remove('active');
+      });
+    });
+
+    // 키보드 이벤트
+    const keyMap = { 'd': 0, 'f': 1, 'j': 2, 'k': 3 };
+    
+    document.addEventListener('keydown', (e) => {
+      const lane = keyMap[e.key.toLowerCase()];
+      if (lane !== undefined) {
+        buttons[lane].classList.add('active');
+        handleInput(lane);
+      }
+    });
+    
+    document.addEventListener('keyup', (e) => {
+      const lane = keyMap[e.key.toLowerCase()];
+      if (lane !== undefined) {
+        buttons[lane].classList.remove('active');
+      }
+    });
+
+    // 난이도 선택
+    diffBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        diffBtns.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        state.difficulty = btn.dataset.diff;
+      });
+    });
+
+    // 시작/재시작 버튼
+    document.getElementById('start-btn').addEventListener('click', startGame);
+    document.getElementById('retry-btn').addEventListener('click', startGame);
+  </script>
+</body>
+</html>
