@@ -667,7 +667,7 @@ function update(dt) {
     player.x = Math.max(-half, Math.min(half, player.x));
     player.z = Math.max(-half, Math.min(half, player.z));
 
-    player.angle = Math.atan2(inp.x, inp.z);
+    player.angle = Math.atan2(-inp.x, -inp.z);
   }
 
   // Player mesh
