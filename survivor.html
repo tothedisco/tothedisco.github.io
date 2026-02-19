@@ -140,8 +140,10 @@ const SKILLS = [
   {icon:'👟', name:'이동속도 UP', desc:'이동속도 +20%', apply:()=>{moveSpeed*=1.2;}},
   {icon:'⚡', name:'공격속도 UP', desc:'공격속도 +25%', apply:()=>{atkSpeed*=0.75;}},
   {icon:'🦴', name:'멀티샷', desc:'투사체 +1', apply:()=>{multiShot++;}},
+  {icon:'🦴', name:'멀티샷', desc:'투사체 +1', apply:()=>{multiShot++;}},
   {icon:'💚', name:'HP 회복', desc:'HP 전부 회복', apply:()=>{hp=maxHp;}},
   {icon:'📢', name:'짖기 공격', desc:'범위 공격 해금', apply:()=>{barkUnlocked=true; barkCooldown=Math.max(1,barkCooldown-1);}},
+  {icon:'💪', name:'최대 HP UP', desc:'최대 HP +5', apply:()=>{maxHp+=5; hp+=5;}},
 ];
 
 // ===== INIT =====
@@ -810,12 +812,12 @@ function update(dt) {
     const dz = player.z - g.mesh.position.z;
     const dist = Math.sqrt(dx*dx + dz*dz);
     // Attract
-    if (dist < 4) {
-      const sp = 8;
+    if (dist < 8) {
+      const sp = 15;
       g.mesh.position.x += (dx/dist) * sp * dt;
       g.mesh.position.z += (dz/dist) * sp * dt;
     }
-    if (dist < 1) {
+    if (dist < 1.2) {
       addXp(1);
       scene.remove(g.mesh);
       gems.splice(i, 1);
