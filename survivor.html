@@ -209,14 +209,13 @@ const WEAPON_SKILLS = {
   bark: {
     icon: '📢', name: '원형 짖기', type: 'weapon', maxLevel: 8,
     desc: lv => {
-      const dmg = Math.round((3 + lv * 2) * 10) / 10;
-      const range = 8 + lv * 2;
-      return lv === 0 ? `범위 공격 해금` : `데미지 ${dmg}, 범위 ${range}`;
+      const dmg = Math.round((1.5 + lv * 1) * 10) / 10;
+      const range = 5 + lv * 1.5;
+      return lv === 0 ? `상시 범위 오라 해금` : `초당 ${dmg}, 범위 ${range}`;
     },
     getStats: lv => ({
-      damage: 3 + lv * 2,
-      range: 8 + lv * 2,
-      cooldown: Math.max(1.5, 4 - lv * 0.3)
+      damage: 1.5 + lv * 1,
+      range: 5 + lv * 1.5
     })
   },
   tail: {
@@ -546,6 +545,8 @@ function resetState() {
   gems.forEach(g => scene.remove(g.mesh));
   particles.forEach(p => scene.remove(p.mesh));
   barkRings.forEach(r => scene.remove(r.mesh));
+  if (barkAuraMesh) { scene.remove(barkAuraMesh); barkAuraMesh = null; }
+  barkDmgTimer = 0;
   treatBombs.forEach(b => scene.remove(b.mesh));
   dashTrails.forEach(t => scene.remove(t.mesh));
   if (tailWhipGroup) { scene.remove(tailWhipGroup); tailWhipGroup = null; }
@@ -747,19 +748,47 @@ function fireBone() {
   }
 }
 
-function doBark() {
+let barkAuraMesh = null;
+let barkDmgTimer = 0;
+
+function updateBarkAura(dt) {
   const lv = getSkillLevel('bark');
-  if (lv <= 0) return;
-  sfxBark();
+  if (lv <= 0) {
+    if (barkAuraMesh) { scene.remove(barkAuraMesh); barkAuraMesh = null; }
+    return;
+  }
   const stats = WEAPON_SKILLS.bark.getStats(lv);
-  const mesh = new THREE.Mesh(
-    new THREE.TorusGeometry(1, 0.15, 8, 24),
-    new THREE.MeshBasicMaterial({color: 0xffaa00, transparent: true, opacity: 0.7})
-  );
-  mesh.rotation.x = -Math.PI / 2;
-  mesh.position.set(player.x, 0.5, player.z);
-  scene.add(mesh);
-  barkRings.push({mesh, radius: 1, maxRadius: stats.range, life: 0.6, x: player.x, z: player.z, dmg: stats.damage});
+  const range = stats.range;
+
+  // Create/update aura mesh
+  if (!barkAuraMesh) {
+    barkAuraMesh = new THREE.Mesh(
+      new THREE.RingGeometry(0.5, 1, 32),
+      new THREE.MeshBasicMaterial({color: 0xffaa00, transparent: true, opacity: 0.2, side: THREE.DoubleSide})
+    );
+    barkAuraMesh.rotation.x = -Math.PI / 2;
+    scene.add(barkAuraMesh);
+  }
+  barkAuraMesh.position.set(player.x, 0.3, player.z);
+  barkAuraMesh.scale.set(range, range, range);
+  // Pulse
+  barkAuraMesh.material.opacity = 0.15 + Math.sin(survivalTime * 4) * 0.08;
+
+  // Deal damage every 0.5s
+  barkDmgTimer -= dt;
+  if (barkDmgTimer <= 0) {
+    barkDmgTimer = 0.5;
+    for (let j = enemies.length - 1; j >= 0; j--) {
+      const e = enemies[j];
+      const dx = player.x - e.mesh.position.x;
+      const dz = player.z - e.mesh.position.z;
+      const d = Math.sqrt(dx*dx + dz*dz);
+      if (d < range) {
+        e.hp -= stats.damage * 0.5;
+        if (e.hp <= 0) killEnemy(j);
+      }
+    }
+  }
 }
 
 // ===== TAIL WHIP =====
@@ -1077,15 +1106,8 @@ function update(dt) {
     }
   }
 
-  // Bark
-  if (getSkillLevel('bark') > 0) {
-    weaponTimers.bark -= dt;
-    if (weaponTimers.bark <= 0) {
-      const stats = WEAPON_SKILLS.bark.getStats(getSkillLevel('bark'));
-      weaponTimers.bark = stats.cooldown * cdMult;
-      doBark();
-    }
-  }
+  // Bark aura
+  updateBarkAura(dt);
 
   // Bomb
   if (getSkillLevel('bomb') > 0) {
@@ -1169,25 +1191,10 @@ function update(dt) {
     if (dist > 60) { scene.remove(e.mesh); enemies.splice(i, 1); }
   }
 
-  // Update bark rings
+  // Clean up old bark rings (legacy)
   for (let i = barkRings.length - 1; i >= 0; i--) {
-    const r = barkRings[i];
-    r.life -= dt;
-    r.radius += 15 * dt;
-    r.mesh.scale.set(r.radius, r.radius, r.radius);
-    r.mesh.material.opacity = r.life;
-    if (r.life <= 0) { scene.remove(r.mesh); barkRings.splice(i, 1); continue; }
-    for (let j = enemies.length - 1; j >= 0; j--) {
-      const e = enemies[j];
-      const dx = r.x - e.mesh.position.x;
-      const dz = r.z - e.mesh.position.z;
-      const d = Math.sqrt(dx*dx + dz*dz);
-      if (d < r.radius && !e.hitCooldowns['bark_' + i]) {
-        e.hp -= r.dmg;
-        e.hitCooldowns['bark_' + i] = 999;
-        if (e.hp <= 0) killEnemy(j);
-      }
-    }
+    scene.remove(barkRings[i].mesh);
+    barkRings.splice(i, 1);
   }
 
   // Update gems
