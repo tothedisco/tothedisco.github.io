@@ -630,6 +630,12 @@ function showLevelUp() {
     }
   }
 
+  // No skills available? Skip level up
+  if (pool.length === 0) {
+    gameState = 'playing';
+    return;
+  }
+
   // Shuffle and pick
   const cardCount = Math.min(getLuckCards(), pool.length);
   const picked = [];
