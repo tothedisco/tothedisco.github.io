@@ -1500,6 +1500,25 @@ function animate() {
 }
 
 init();
+
+// === CHEAT CONSOLE ===
+window.cheat = {
+  god: () => { invincibleTimer = 999999; console.log('🛡️ 무적 ON'); },
+  hp: (n=9999) => { hp = n; maxHp = n; baseMaxHp = n; console.log('❤️ HP:', n); },
+  skill: (id, lv=8) => { skillLevels[id] = lv; console.log('⬆️', id, 'Lv.'+lv); },
+  allmax: () => { Object.keys(ALL_SKILLS).forEach(k => skillLevels[k] = ALL_SKILLS[k].maxLevel); console.log('🔥 올스킬 만렙!'); },
+  speed: () => { skillLevels.speed = 5; console.log('👟 빠름!'); },
+  nuke: () => { enemies.forEach(e => { e.hp = 0; }); let c = enemies.length; while(enemies.length) killEnemy(0); console.log('💀 '+c+'마리 처치!'); },
+  help: () => console.log(`
+    cheat.god()      - 무적
+    cheat.hp(9999)   - HP 설정
+    cheat.allmax()   - 올스킬 만렙
+    cheat.skill("bone",8) - 특정 스킬 레벨
+    cheat.speed()    - 이동속도 만렙
+    cheat.nuke()     - 화면의 적 전부 처치
+  `),
+};
+console.log('%c🐕 치트: cheat.help() 입력!', 'color:#00f5d4;font-size:16px;font-weight:bold');
 </script>
 </body>
 </html>
