@@ -695,6 +695,16 @@ function showLevelUp() {
     cont.appendChild(card);
   });
 
+  // Skip button (fallback)
+  const skipBtn = document.createElement('div');
+  skipBtn.style.cssText = 'color:#666;cursor:pointer;margin-top:15px;font-size:14px;pointer-events:auto;';
+  skipBtn.textContent = '스킵 ▶';
+  skipBtn.onclick = () => {
+    document.getElementById('levelUpScreen').style.display = 'none';
+    gameState = 'playing';
+  };
+  cont.appendChild(skipBtn);
+
   document.getElementById('levelUpScreen').style.display = 'flex';
 }
 
