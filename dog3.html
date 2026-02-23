@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>골든이 🐕</title>
+<style>
+:root{
+--fur:#D4A843;--fur-dark:#C4953A;--fur-light:#E8C872;--fur-belly:#F0D88A;
+--nose:#2C1810;--tongue:#E8707A;--eye:#2C1810;--eye-shine:#fff;
+--sky-day:linear-gradient(180deg,#87CEEB 0%,#B8E4F9 60%,#90D465 60%,#6BBF3F 100%);
+--sky-eve:linear-gradient(180deg,#FF7E47 0%,#FFB88C 40%,#7AB648 60%,#5A9A30 100%);
+--sky-night:linear-gradient(180deg,#1a1a3e 0%,#2d2d6b 40%,#2E5A1E 60%,#1E3F12 100%);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',sans-serif;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+body{background:var(--sky-day);transition:background 3s}
+body.evening{background:var(--sky-eve)}
+body.night{background:var(--sky-night)}
+
+/* Stars for night */
+.stars{position:fixed;top:0;left:0;width:100%;height:60%;pointer-events:none;opacity:0;transition:opacity 3s}
+body.night .stars{opacity:1}
+.star{position:absolute;background:#fff;border-radius:50%;animation:twinkle 2s infinite alternate}
+@keyframes twinkle{0%{opacity:.3}100%{opacity:1}}
+
+/* Clouds */
+.cloud{position:absolute;background:#fff;border-radius:50%;opacity:.85;animation:drift linear infinite}
+.cloud::before,.cloud::after{content:'';position:absolute;background:#fff;border-radius:50%}
+.c1{width:80px;height:30px;top:8%;left:-100px;animation-duration:25s}
+.c1::before{width:50px;height:40px;top:-20px;left:15px}
+.c1::after{width:40px;height:30px;top:-10px;left:45px}
+.c2{width:60px;height:24px;top:15%;left:-80px;animation-duration:35s;animation-delay:8s}
+.c2::before{width:40px;height:32px;top:-16px;left:10px}
+.c2::after{width:30px;height:24px;top:-8px;left:35px}
+.c3{width:70px;height:26px;top:5%;left:-90px;animation-duration:30s;animation-delay:15s}
+.c3::before{width:45px;height:36px;top:-18px;left:12px}
+.c3::after{width:35px;height:28px;top:-10px;left:40px}
+@keyframes drift{0%{transform:translateX(0)}100%{transform:translateX(calc(100vw + 200px))}}
+
+/* Butterflies */
+.butterfly{position:absolute;pointer-events:none;animation:fly linear infinite}
+.butterfly .wing{width:10px;height:14px;border-radius:50%;position:absolute;animation:flap .3s infinite alternate}
+.butterfly .wing.l{background:#FF69B4;left:-10px;transform-origin:right center}
+.butterfly .wing.r{background:#FFB6C1;left:2px;transform-origin:left center}
+@keyframes flap{0%{transform:scaleX(1)}100%{transform:scaleX(.3)}}
+@keyframes fly{0%{transform:translate(0,0)}25%{transform:translate(30px,-20px)}50%{transform:translate(60px,10px)}75%{transform:translate(20px,-15px)}100%{transform:translate(-10px,5px)}}
+.bf1{top:20%;left:15%;animation-duration:8s}
+.bf2{top:30%;left:70%;animation-duration:10s;animation-delay:3s}
+.bf3{top:12%;left:50%;animation-duration:12s;animation-delay:6s}
+
+/* Header */
+.header{position:fixed;top:0;left:0;right:0;z-index:100;text-align:center;padding:12px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.header .name{font-size:24px;font-weight:700;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.3)}
+.header .mood{font-size:20px;margin-top:2px;transition:all .3s}
+.header .status{font-size:13px;color:rgba(255,255,255,.8);margin-top:2px}
+
+/* Buttons */
+.buttons{position:fixed;bottom:0;left:0;right:0;z-index:100;display:flex;justify-content:center;gap:12px;padding:16px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.btn{width:60px;height:60px;border-radius:50%;border:none;font-size:28px;cursor:pointer;background:rgba(255,255,255,.85);box-shadow:0 4px 12px rgba(0,0,0,.15);transition:transform .15s,box-shadow .15s;-webkit-tap-highlight-color:transparent}
+.btn:active{transform:scale(.9);box-shadow:0 2px 6px rgba(0,0,0,.1)}
+
+/* Dog container */
+.dog-wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);transition:transform .5s}
+.dog{position:relative;width:200px;height:260px;transition:transform .4s}
+
+/* Tail */
+.tail{position:absolute;width:20px;height:70px;background:var(--fur);border-radius:10px 10px 6px 6px;top:60px;right:-15px;transform-origin:bottom center;animation:wag 1s ease-in-out infinite alternate}
+@keyframes wag{0%{transform:rotate(-15deg)}100%{transform:rotate(25deg)}}
+.dog.petting .tail{animation:wagfast .2s ease-in-out infinite alternate}
+@keyframes wagfast{0%{transform:rotate(-30deg)}100%{transform:rotate(30deg)}}
+.dog.excited .tail{animation:wagcrazy .12s ease-in-out infinite alternate}
+@keyframes wagcrazy{0%{transform:rotate(-40deg)}100%{transform:rotate(40deg)}}
+.dog.sleeping .tail{animation:none;transform:rotate(10deg)}
+
+/* Body */
+.body{position:absolute;width:160px;height:120px;background:var(--fur);border-radius:80px 80px 40px 40px;bottom:50px;left:20px}
+.belly{position:absolute;width:100px;height:60px;background:var(--fur-belly);border-radius:50%;bottom:5px;left:30px}
+
+/* Legs */
+.leg{position:absolute;width:32px;height:55px;background:var(--fur-dark);border-radius:10px 10px 14px 14px;bottom:0}
+.leg.fl{left:30px}.leg.fr{left:70px}.leg.bl{left:110px}.leg.br{left:148px}
+.leg::after{content:'';position:absolute;bottom:0;left:2px;width:28px;height:14px;background:var(--fur-dark);border-radius:14px 14px 8px 8px}
+.dog.excited{animation:bounce .3s ease-in-out infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-20px)}}
+.dog.sleeping{animation:breathe 3s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+
+/* Head */
+.head{position:absolute;width:140px;height:130px;background:var(--fur);border-radius:70px 70px 50px 50px;top:0;left:30px;z-index:2;transition:transform .4s}
+.dog.eating .head{transform:translateY(20px) rotate(10deg)}
+.dog.petting .head{transform:rotate(-5deg)}
+
+/* Snout */
+.snout{position:absolute;width:80px;height:50px;background:var(--fur-light);border-radius:40px 40px 35px 35px;bottom:5px;left:30px}
+.nose{position:absolute;width:24px;height:16px;background:var(--nose);border-radius:12px 12px 8px 8px;top:5px;left:28px}
+.nose::after{content:'';position:absolute;width:8px;height:4px;background:rgba(255,255,255,.3);border-radius:50%;top:3px;left:4px}
+
+/* Mouth & Tongue */
+.mouth{position:absolute;width:20px;height:8px;border-bottom:3px solid var(--fur-dark);border-radius:0 0 10px 10px;bottom:10px;left:30px}
+.tongue{position:absolute;width:16px;height:22px;background:var(--tongue);border-radius:8px 8px 10px 10px;bottom:-18px;left:32px;animation:lick 3s ease-in-out infinite;transform-origin:top center}
+@keyframes lick{0%,80%,100%{transform:scaleY(.6)}90%{transform:scaleY(1)}}
+.dog.excited .tongue{animation:pant .4s ease-in-out infinite alternate}
+@keyframes pant{0%{transform:scaleY(.5);height:22px}100%{transform:scaleY(1);height:30px}}
+.dog.sleeping .tongue{display:none}
+.dog.eating .tongue{animation:none;transform:scaleY(1)}
+
+/* Eyes */
+.eye{position:absolute;width:22px;height:24px;background:#fff;border-radius:50%;top:40px;overflow:hidden}
+.eye.l{left:28px}.eye.r{left:88px}
+.pupil{width:14px;height:14px;background:var(--eye);border-radius:50%;position:absolute;top:6px;left:4px}
+.pupil::after{content:'';width:5px;height:5px;background:var(--eye-shine);border-radius:50%;position:absolute;top:2px;left:2px}
+.eye::after{content:'';position:absolute;top:0;left:0;right:0;height:0;background:var(--fur);transition:height .3s;z-index:1}
+.dog .eye{animation:blink 4s infinite}
+@keyframes blink{0%,96%,100%{clip-path:inset(0 0 0 0)}97%,99%{clip-path:inset(0 0 50% 0)}}
+.dog.petting .eye::after{height:100%}
+.dog.sleeping .eye::after{height:100%}
+.dog.excited .eye{animation:none}
+.dog.excited .pupil{animation:look .5s infinite alternate}
+@keyframes look{0%{transform:translateX(-2px)}100%{transform:translateX(2px)}}
+
+/* Ears */
+.ear{position:absolute;width:45px;height:70px;background:var(--fur-dark);border-radius:20px 20px 25px 25px;top:15px;z-index:1}
+.ear.l{left:18px;transform:rotate(-15deg);transform-origin:top right}
+.ear.r{right:18px;transform:rotate(15deg);transform-origin:top left}
+.dog.petting .ear.l{transform:rotate(-20deg)}
+.dog.petting .ear.r{transform:rotate(20deg)}
+
+/* Zzz */
+.zzz{position:absolute;top:-10px;right:-10px;font-size:20px;opacity:0;pointer-events:none}
+.dog.sleeping .zzz{animation:zzz 2s ease-in-out infinite}
+@keyframes zzz{0%{opacity:0;transform:translate(0,0) scale(.5)}50%{opacity:1}100%{opacity:0;transform:translate(20px,-40px) scale(1.2)}}
+.zzz:nth-child(2){animation-delay:.7s!important;right:0}
+.zzz:nth-child(3){animation-delay:1.4s!important;right:10px}
+
+/* Rollover */
+.dog.rollover{transform:rotate(180deg) scaleX(-1);transition:transform .6s}
+
+/* Particles */
+.particle{position:fixed;pointer-events:none;font-size:20px;z-index:200;animation:particleUp 1s ease-out forwards}
+@keyframes particleUp{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.3)}}
+
+/* Food item */
+.food-item{position:fixed;font-size:36px;z-index:150;animation:foodDrop 1s ease-in forwards;pointer-events:none}
+@keyframes foodDrop{0%{transform:translateY(-60px);opacity:1}100%{transform:translateY(50vh);opacity:1}}
+
+/* Ball */
+.ball-item{position:fixed;font-size:36px;z-index:150;pointer-events:none}
+
+/* Bath bubbles */
+.bubble{position:fixed;pointer-events:none;width:12px;height:12px;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.9),rgba(173,216,230,.4));border-radius:50%;z-index:150;animation:bubbleUp 2s ease-out forwards}
+@keyframes bubbleUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-100px) scale(.5)}}
+</style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+<div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+<div class="butterfly bf1"><div class="wing l"></div><div class="wing r"></div></div>
+<div class="butterfly bf2"><div class="wing l"></div><div class="wing r"></div></div>
+<div class="butterfly bf3"><div class="wing l"></div><div class="wing r"></div></div>
+
+<div class="header">
+<div class="name">🐕 골든이</div>
+<div class="mood" id="mood">❤️❤️❤️❤️❤️</div>
+<div class="status" id="status">꼬리를 흔들고 있어요!</div>
+</div>
+
+<div class="dog-wrap" id="dogWrap">
+<div class="dog" id="dog">
+<div class="tail"></div>
+<div class="body"><div class="belly"></div></div>
+<div class="leg fl"></div><div class="leg fr"></div><div class="leg bl"></div><div class="leg br"></div>
+<div class="head">
+<div class="ear l"></div><div class="ear r"></div>
+<div class="eye l"><div class="pupil"></div></div>
+<div class="eye r"><div class="pupil"></div></div>
+<div class="snout">
+<div class="nose"></div>
+<div class="mouth"></div>
+<div class="tongue"></div>
+</div>
+</div>
+<div class="zzz">💤</div><div class="zzz">💤</div><div class="zzz">💤</div>
+</div>
+</div>
+
+<div class="buttons">
+<button class="btn" id="btnBall">🎾</button>
+<button class="btn" id="btnTreat">🦴</button>
+<button class="btn" id="btnPose">📸</button>
+<button class="btn" id="btnBath">🛁</button>
+</div>
+
+<script>
+const dog=document.getElementById('dog'),dogWrap=document.getElementById('dogWrap'),moodEl=document.getElementById('mood'),statusEl=document.getElementById('status');
+let mood=5,state='idle',idleTimer=null,lastTouch=Date.now(),audioCtx=null;
+
+function getAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx}
+function playTone(freq,dur,type='sine'){try{const a=getAudio(),o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.value=freq;g.gain.value=.08;o.connect(g);g.connect(a.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,a.currentTime+dur);o.stop(a.currentTime+dur)}catch(e){}}
+function bark(){playTone(400,.1);setTimeout(()=>playTone(500,.15),120)}
+function whine(){playTone(600,.3,'triangle')}
+
+function setState(s,duration){
+ if(state===s)return;
+ dog.className='dog';
+ if(s!=='idle')dog.classList.add(s);
+ state=s;
+ updateStatus();
+ if(duration)setTimeout(()=>{if(state===s)setState('idle')},duration);
+}
+
+function updateStatus(){
+ const msgs={idle:'꼬리를 흔들고 있어요!',petting:'기분 좋아~ 😊',excited:'신나서 뛰고 있어요! 🎾',sleeping:'쿨쿨... 😴',eating:'냠냠! 🦴',rollover:'배를 보여주고 있어요! 🐾',bath:'뽀득뽀득~ 🫧'};
+ statusEl.textContent=msgs[state]||msgs.idle;
+}
+
+function updateMood(){
+ mood=Math.max(0,Math.min(5,mood));
+ moodEl.textContent='❤️'.repeat(Math.round(mood))+'🤍'.repeat(5-Math.round(mood));
+}
+
+function spawnParticle(x,y,emoji){
+ const p=document.createElement('div');p.className='particle';p.textContent=emoji||['❤️','✨','⭐','💛','🌟'][Math.random()*5|0];
+ const dx=(Math.random()-.5)*80,dy=-30-Math.random()*60;
+ p.style.cssText=`left:${x}px;top:${y}px;--dx:${dx}px;--dy:${dy}px`;
+ document.body.appendChild(p);setTimeout(()=>p.remove(),1000);
+}
+
+function resetIdle(){
+ lastTouch=Date.now();
+ clearTimeout(idleTimer);
+ if(state==='sleeping'||state==='idle'){setState('idle')}
+ idleTimer=setTimeout(()=>{if(state==='idle')statusEl.textContent='앉아 있어요...';
+  idleTimer=setTimeout(()=>{if(state==='idle'){statusEl.textContent='누워 있어요...';}
+   idleTimer=setTimeout(()=>{if(state==='idle')setState('sleeping')},10000);
+  },5000);
+ },5000);
+}
+
+// Touch/click dog
+let lastTap=0;
+dogWrap.addEventListener('pointerdown',(e)=>{
+ e.preventDefault();resetIdle();
+ const now=Date.now();
+ if(now-lastTap<350){
+  // double tap - rollover
+  dog.className='dog rollover';state='rollover';updateStatus();bark();
+  for(let i=0;i<6;i++)setTimeout(()=>spawnParticle(e.clientX+Math.random()*40-20,e.clientY+Math.random()*40-20,'🐾'),i*100);
+  setTimeout(()=>{dog.classList.remove('rollover');setState('idle');resetIdle()},2500);
+  lastTap=0;return;
+ }
+ lastTap=now;
+ setState('petting');mood=Math.min(5,mood+.3);updateMood();
+ for(let i=0;i<4;i++)setTimeout(()=>spawnParticle(e.clientX+Math.random()*30-15,e.clientY-Math.random()*20),i*80);
+ whine();
+});
+dogWrap.addEventListener('pointerup',()=>{if(state==='petting')setState('idle')});
+
+// Ball
+document.getElementById('btnBall').onclick=()=>{
+ resetIdle();bark();setState('excited',3000);mood=Math.min(5,mood+.5);updateMood();
+ const b=document.createElement('div');b.className='ball-item';b.textContent='🎾';
+ b.style.cssText=`left:50%;top:60%;`;
+ document.body.appendChild(b);
+ b.animate([{transform:'translate(-50%,-50%) scale(1)'},{transform:'translate(100px,-200px) scale(.5)',opacity:0}],{duration:800,easing:'ease-out'});
+ setTimeout(()=>b.remove(),800);
+ for(let i=0;i<5;i++)setTimeout(()=>spawnParticle(window.innerWidth/2+Math.random()*60-30,window.innerHeight/2,'⭐'),i*100);
+};
+
+// Treat
+document.getElementById('btnTreat').onclick=()=>{
+ resetIdle();
+ const f=document.createElement('div');f.className='food-item';f.textContent='🦴';
+ f.style.left=Math.random()*60+20+'%';f.style.top='10%';
+ document.body.appendChild(f);
+ setTimeout(()=>{f.remove();setState('eating',1500);mood=Math.min(5,mood+.5);updateMood();playTone(300,.05);setTimeout(()=>playTone(350,.05),80)},900);
+};
+
+// Pose
+let poseIdx=0;
+const poses=[{cls:'',msg:'하이! 📸'},{cls:'petting',msg:'행복해~ 📸'},{cls:'excited',msg:'신나! 📸'}];
+document.getElementById('btnPose').onclick=()=>{
+ resetIdle();const p=poses[poseIdx%poses.length];poseIdx++;
+ dog.className='dog';if(p.cls)dog.classList.add(p.cls);state=p.cls||'idle';
+ statusEl.textContent=p.msg;
+ for(let i=0;i<8;i++)setTimeout(()=>spawnParticle(window.innerWidth/2+Math.random()*100-50,window.innerHeight/2-50,'✨'),i*60);
+ playTone(800,.1);setTimeout(()=>playTone(1000,.1),120);
+ setTimeout(()=>{setState('idle');resetIdle()},2000);
+};
+
+// Bath
+document.getElementById('btnBath').onclick=()=>{
+ resetIdle();dog.className='dog';state='bath';updateStatus();mood=Math.min(5,mood+.2);updateMood();
+ const rect=dogWrap.getBoundingClientRect();
+ for(let i=0;i<20;i++){
+  setTimeout(()=>{
+   const b=document.createElement('div');b.className='bubble';
+   b.style.left=rect.left+Math.random()*rect.width+'px';
+   b.style.top=rect.top+Math.random()*rect.height+'px';
+   b.style.width=b.style.height=6+Math.random()*12+'px';
+   document.body.appendChild(b);setTimeout(()=>b.remove(),2000);
+  },i*100);
+ }
+ playTone(200,.05,'triangle');
+ setTimeout(()=>{setState('idle');resetIdle()},2500);
+};
+
+// Mood decay
+setInterval(()=>{if(Date.now()-lastTouch>15000){mood=Math.max(0,mood-.1);updateMood()}},3000);
+
+// Time of day background
+function updateSky(){
+ const h=new Date().getHours();
+ document.body.classList.remove('evening','night');
+ if(h>=18&&h<21)document.body.classList.add('evening');
+ else if(h>=21||h<6)document.body.classList.add('night');
+}
+updateSky();setInterval(updateSky,60000);
+
+// Stars
+(()=>{const c=document.getElementById('stars');for(let i=0;i<30;i++){const s=document.createElement('div');s.className='star';s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;width:${2+Math.random()*3}px;height:${2+Math.random()*3}px;animation-delay:${Math.random()*2}s`;c.appendChild(s)}})();
+
+// Scale dog to viewport
+function scaleDog(){
+ const s=Math.min(window.innerWidth/500,window.innerHeight/600)*1.2;
+ dogWrap.style.transform=`translate(-50%,-50%) scale(${s})`;
+}
+scaleDog();window.addEventListener('resize',scaleDog);
+
+resetIdle();updateMood();
+</script>
+</body>
+</html>
