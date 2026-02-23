@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<title>🐕 골든이</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif}
+body{background:linear-gradient(180deg,#87CEEB 0%,#87CEEB 45%,#7EC850 45%,#5BA83A 100%);touch-action:none}
+
+/* clouds */
+.cloud{position:absolute;background:#fff;border-radius:50%;opacity:.8;animation:drift linear infinite}
+.cloud::before,.cloud::after{content:'';position:absolute;background:#fff;border-radius:50%}
+@keyframes drift{from{transform:translateX(-200px)}to{transform:translateX(calc(100vw + 200px))}}
+
+/* top bar */
+#topbar{position:fixed;top:0;left:0;right:0;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;z-index:10;background:rgba(0,0,0,.15);backdrop-filter:blur(6px);color:#fff}
+#topbar h1{font-size:1.2rem;text-shadow:1px 1px 2px rgba(0,0,0,.3)}
+#mood{display:flex;gap:2px;font-size:1.1rem}
+#status{font-size:.75rem;opacity:.8;margin-top:2px}
+
+/* dog container */
+#dog-area{position:absolute;bottom:120px;left:50%;transform:translateX(-50%);width:200px;height:200px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:bottom .3s}
+#dog{font-size:140px;line-height:1;transition:transform .3s;filter:drop-shadow(0 8px 16px rgba(0,0,0,.2))}
+#dog.happy{animation:wiggle .3s ease 3}
+#dog.sleep{animation:breathe 2s ease-in-out infinite}
+#dog.roll{animation:roll .8s ease}
+#dog.run-right{animation:runRight .6s ease-out}
+#dog.run-left{animation:runLeft .8s ease-in}
+#dog.eat{animation:eat .4s ease 2}
+#dog.bark-anim{animation:barkBounce .2s ease 2}
+
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.05) translateY(-4px)}}
+@keyframes roll{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(1.1)}100%{transform:rotate(360deg) scale(1)}}
+@keyframes runRight{0%{transform:translateX(0) scaleX(1)}100%{transform:translateX(60vw) scaleX(1)}}
+@keyframes runLeft{0%{transform:translateX(60vw) scaleX(-1)}100%{transform:translateX(0) scaleX(1)}}
+@keyframes eat{0%,100%{transform:translateY(0)}50%{transform:translateY(10px) scale(1.05)}}
+@keyframes barkBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+
+/* speech bubble */
+#speech{position:absolute;bottom:220px;left:50%;transform:translateX(-50%);background:#fff;color:#333;padding:8px 16px;border-radius:20px;font-size:1.1rem;font-weight:bold;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+#speech::after{content:'';position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);border:8px solid transparent;border-top-color:#fff}
+#speech.show{opacity:1}
+
+/* ball */
+#ball{position:absolute;font-size:36px;opacity:0;pointer-events:none;z-index:5}
+@keyframes throwBall{0%{opacity:1;transform:translate(0,0)}50%{opacity:1;transform:translate(40vw,-50vh)}100%{opacity:1;transform:translate(50vw,-10vh)}}
+@keyframes ballReturn{0%{opacity:1;transform:translate(50vw,-10vh)}100%{opacity:1;transform:translate(0,0)}}
+
+/* treat */
+#treat{position:absolute;font-size:40px;opacity:0;pointer-events:none;z-index:5}
+@keyframes treatDrop{0%{opacity:1;transform:translateY(-80px) scale(1.2)}60%{opacity:1;transform:translateY(10px) scale(1)}100%{opacity:0;transform:translateY(10px) scale(.5)}}
+
+/* buttons */
+#buttons{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:12px;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));background:rgba(0,0,0,.2);backdrop-filter:blur(6px);z-index:10}
+.btn{width:64px;height:64px;border-radius:50%;border:none;font-size:28px;background:rgba(255,255,255,.9);box-shadow:0 4px 12px rgba(0,0,0,.2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s;-webkit-tap-highlight-color:transparent}
+.btn:active{transform:scale(.9);box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.btn span{font-size:.55rem;display:block;margin-top:-2px}
+
+/* particles */
+.particle{position:fixed;pointer-events:none;z-index:20;font-size:24px;animation:floatUp 1s ease-out forwards}
+@keyframes floatUp{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.3)}}
+
+/* footprints */
+.footprint{position:fixed;pointer-events:none;z-index:1;font-size:18px;opacity:.6;animation:fadeOut 3s ease-out forwards}
+@keyframes fadeOut{to{opacity:0}}
+
+/* flowers */
+.flower{position:absolute;font-size:20px;bottom:0;opacity:.7}
+
+/* zzz */
+.zzz{position:absolute;pointer-events:none;font-size:20px;font-weight:bold;color:#fff;text-shadow:1px 1px 2px rgba(0,0,0,.3);animation:zzzFloat 2s ease-out forwards}
+@keyframes zzzFloat{0%{opacity:1;transform:translate(0,0)}100%{opacity:0;transform:translate(20px,-60px)}}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div>
+    <h1>🐕 골든이</h1>
+    <div id="status">기분 좋아요!</div>
+  </div>
+  <div id="mood">❤️❤️❤️❤️❤️</div>
+</div>
+
+<div id="speech"></div>
+
+<div id="dog-area">
+  <div id="dog">🐕</div>
+  <div id="ball">🎾</div>
+  <div id="treat">🦴</div>
+</div>
+
+<div id="buttons">
+  <button class="btn" id="btn-ball">🎾</button>
+  <button class="btn" id="btn-treat">🦴</button>
+  <button class="btn" id="btn-photo">📸</button>
+  <button class="btn" id="btn-name">✏️</button>
+</div>
+
+<script>
+const dog = document.getElementById('dog');
+const dogArea = document.getElementById('dog-area');
+const speech = document.getElementById('speech');
+const ballEl = document.getElementById('ball');
+const treatEl = document.getElementById('treat');
+const moodEl = document.getElementById('mood');
+const statusEl = document.getElementById('status');
+const nameEl = document.querySelector('#topbar h1');
+
+let happiness = 5;
+let lastTouch = Date.now();
+let sleeping = false;
+let busy = false;
+let dogName = '골든이';
+let touchCount = 0;
+
+// Audio context
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playTone(freq, dur, type='sine') {
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type;
+  o.frequency.value = freq;
+  g.gain.value = 0.15;
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + dur);
+}
+function barkSound() {
+  playTone(300, 0.1, 'sawtooth');
+  setTimeout(() => playTone(250, 0.15, 'sawtooth'), 120);
+}
+function happySound() {
+  playTone(523, 0.1); setTimeout(() => playTone(659, 0.1), 100); setTimeout(() => playTone(784, 0.15), 200);
+}
+function treatSound() {
+  playTone(400, 0.08); setTimeout(() => playTone(500, 0.08), 80); setTimeout(() => playTone(600, 0.1), 160);
+}
+
+// Clouds
+for (let i = 0; i < 3; i++) {
+  const c = document.createElement('div');
+  c.className = 'cloud';
+  const s = 40 + Math.random() * 60;
+  Object.assign(c.style, {
+    width: s + 'px', height: s * 0.6 + 'px',
+    top: 5 + Math.random() * 30 + '%',
+    animationDuration: 20 + Math.random() * 30 + 's',
+    animationDelay: -Math.random() * 30 + 's'
+  });
+  document.body.appendChild(c);
+}
+
+// Flowers
+const flowers = ['🌼', '🌸', '🌻', '🌺', '🌷', '🌿'];
+for (let i = 0; i < 8; i++) {
+  const f = document.createElement('div');
+  f.className = 'flower';
+  f.textContent = flowers[Math.floor(Math.random() * flowers.length)];
+  f.style.left = Math.random() * 90 + 5 + '%';
+  f.style.bottom = Math.random() * 15 + '%';
+  f.style.fontSize = 16 + Math.random() * 16 + 'px';
+  document.body.appendChild(f);
+}
+
+function updateMood() {
+  happiness = Math.max(0, Math.min(5, happiness));
+  moodEl.textContent = '❤️'.repeat(happiness) + '🤍'.repeat(5 - happiness);
+  const statuses = ['심심해요...', '괜찮아요', '좋아요!', '기분 좋아요!', '신나요!!', '최고로 행복해요!!! 🎉'];
+  statusEl.textContent = statuses[happiness];
+}
+
+function showSpeech(text, dur = 2000) {
+  speech.textContent = text;
+  speech.classList.add('show');
+  setTimeout(() => speech.classList.remove('show'), dur);
+}
+
+function spawnParticle(x, y, emoji = '❤️') {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  p.textContent = emoji;
+  p.style.left = x + 'px'; p.style.top = y + 'px';
+  p.style.setProperty('--dx', (Math.random() - 0.5) * 80 + 'px');
+  p.style.setProperty('--dy', -(30 + Math.random() * 60) + 'px');
+  document.body.appendChild(p);
+  setTimeout(() => p.remove(), 1000);
+}
+
+function spawnParticles(x, y, count = 5, emojis = ['❤️', '💕', '✨', '💛']) {
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => spawnParticle(x + (Math.random() - 0.5) * 40, y + (Math.random() - 0.5) * 40, emojis[Math.floor(Math.random() * emojis.length)]), i * 60);
+  }
+}
+
+function wakeUp() {
+  if (!sleeping) return;
+  sleeping = false;
+  dog.classList.remove('sleep');
+  dog.textContent = '🐕';
+  showSpeech('음? 일어났어요!');
+}
+
+function setDogAnim(cls, dur) {
+  dog.className = cls;
+  setTimeout(() => { dog.className = ''; }, dur);
+}
+
+// Pet (touch/drag on dog)
+dogArea.addEventListener('pointerdown', (e) => {
+  if (busy) return;
+  audioCtx.resume();
+  lastTouch = Date.now();
+  if (sleeping) { wakeUp(); return; }
+  touchCount++;
+
+  // Random bark
+  if (Math.random() < 0.2) {
+    barkSound();
+    showSpeech('멍! 멍멍!');
+    setDogAnim('bark-anim', 500);
+    spawnParticles(e.clientX, e.clientY, 3, ['💬', '🐾', '✨']);
+    return;
+  }
+
+  // Pet
+  happySound();
+  setDogAnim('happy', 900);
+  happiness = Math.min(5, happiness + 0.5);
+  happiness = Math.round(happiness);
+  updateMood();
+  spawnParticles(e.clientX, e.clientY, 4);
+
+  const msgs = ['좋아요~!', '더 쓰다듬어주세요!', '행복해요 💛', '꼬리 살랑살랑~', '헤헤 😊'];
+  if (Math.random() < 0.4) showSpeech(msgs[Math.floor(Math.random() * msgs.length)]);
+});
+
+// Double tap → roll
+let lastTap = 0;
+dogArea.addEventListener('touchend', () => {
+  const now = Date.now();
+  if (now - lastTap < 300) {
+    if (busy || sleeping) return;
+    busy = true;
+    dog.textContent = '🦮';
+    setDogAnim('roll', 800);
+    showSpeech('배 쓰다듬어주세요~! 🐾');
+    spawnParticles(window.innerWidth / 2, window.innerHeight / 2, 6, ['⭐', '✨', '💫', '🌟']);
+    setTimeout(() => { dog.textContent = '🐕'; busy = false; }, 1200);
+  }
+  lastTap = now;
+});
+
+// Ball
+document.getElementById('btn-ball').addEventListener('click', () => {
+  if (busy) return;
+  audioCtx.resume();
+  if (sleeping) { wakeUp(); return; }
+  busy = true;
+  lastTouch = Date.now();
+
+  showSpeech('공이다!! 🎾');
+  playTone(600, 0.1);
+
+  // throw
+  ballEl.style.opacity = '1';
+  ballEl.style.animation = 'throwBall 0.8s ease-out forwards';
+
+  setTimeout(() => {
+    dog.textContent = '🦮';
+    setDogAnim('run-right', 600);
+    playTone(400, 0.05, 'square');
+  }, 400);
+
+  setTimeout(() => {
+    ballEl.style.animation = 'ballReturn 0.8s ease-in forwards';
+    dog.textContent = '🐕';
+    setDogAnim('run-left', 800);
+  }, 1400);
+
+  setTimeout(() => {
+    ballEl.style.opacity = '0';
+    ballEl.style.animation = '';
+    showSpeech('물어왔어요! 다시 던져주세요! 🎾');
+    happySound();
+    happiness = Math.min(5, happiness + 1);
+    updateMood();
+    spawnParticles(window.innerWidth / 2, window.innerHeight - 200, 8, ['⭐', '🎾', '✨', '🐾']);
+    busy = false;
+  }, 2400);
+});
+
+// Treat
+document.getElementById('btn-treat').addEventListener('click', () => {
+  if (busy) return;
+  audioCtx.resume();
+  if (sleeping) { wakeUp(); return; }
+  busy = true;
+  lastTouch = Date.now();
+
+  showSpeech('간식! 간식!! 🤤');
+  treatEl.style.opacity = '1';
+  treatEl.style.animation = 'treatDrop 0.8s ease forwards';
+  treatSound();
+
+  setTimeout(() => {
+    setDogAnim('eat', 800);
+    treatEl.style.opacity = '0';
+    treatEl.style.animation = '';
+  }, 600);
+
+  setTimeout(() => {
+    showSpeech('맛있다! 더 주세요~ 😋');
+    happySound();
+    happiness = Math.min(5, happiness + 1);
+    updateMood();
+    spawnParticles(window.innerWidth / 2, window.innerHeight - 200, 6, ['💛', '🦴', '✨', '😋']);
+    busy = false;
+  }, 1600);
+});
+
+// Photo
+document.getElementById('btn-photo').addEventListener('click', () => {
+  audioCtx.resume();
+  if (sleeping) { wakeUp(); }
+  lastTouch = Date.now();
+
+  // Flash effect
+  const flash = document.createElement('div');
+  Object.assign(flash.style, {
+    position: 'fixed', inset: '0', background: '#fff', zIndex: '100',
+    opacity: '1', transition: 'opacity 0.3s', pointerEvents: 'none'
+  });
+  document.body.appendChild(flash);
+  playTone(1000, 0.05);
+  setTimeout(() => { flash.style.opacity = '0'; }, 50);
+  setTimeout(() => flash.remove(), 400);
+
+  showSpeech('📸 찰칵! 귀엽게 나왔나요?');
+  spawnParticles(window.innerWidth / 2, window.innerHeight / 2, 8, ['📸', '✨', '⭐', '💛']);
+});
+
+// Rename
+document.getElementById('btn-name').addEventListener('click', () => {
+  const n = prompt('강아지 이름을 지어주세요!', dogName);
+  if (n && n.trim()) {
+    dogName = n.trim();
+    nameEl.textContent = '🐕 ' + dogName;
+    showSpeech('저는 ' + dogName + '이에요!');
+    happySound();
+  }
+});
+
+// Sleep timer
+setInterval(() => {
+  if (busy) return;
+  const elapsed = (Date.now() - lastTouch) / 1000;
+
+  if (!sleeping && elapsed > 15) {
+    sleeping = true;
+    dog.textContent = '🐕';
+    dog.classList.add('sleep');
+    showSpeech('쿨쿨... 💤');
+    happiness = Math.max(2, happiness - 1);
+    updateMood();
+    statusEl.textContent = '잠자는 중... 💤';
+  }
+
+  if (sleeping) {
+    const z = document.createElement('div');
+    z.className = 'zzz';
+    z.textContent = 'Z';
+    z.style.left = window.innerWidth / 2 + 30 + Math.random() * 20 + 'px';
+    z.style.top = dogArea.offsetTop - 20 + 'px';
+    document.body.appendChild(z);
+    setTimeout(() => z.remove(), 2000);
+  }
+
+  // Decrease happiness over time
+  if (elapsed > 30 && !sleeping) {
+    happiness = Math.max(1, happiness - 1);
+    updateMood();
+  }
+}, 3000);
+
+// Footprints on background touch
+document.body.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('#dog-area') || e.target.closest('#buttons') || e.target.closest('#topbar')) return;
+  lastTouch = Date.now();
+  if (sleeping) wakeUp();
+  const fp = document.createElement('div');
+  fp.className = 'footprint';
+  fp.textContent = '🐾';
+  fp.style.left = e.clientX - 9 + 'px';
+  fp.style.top = e.clientY - 9 + 'px';
+  document.body.appendChild(fp);
+  setTimeout(() => fp.remove(), 3000);
+});
+
+updateMood();
+</script>
+</body>
+</html>
