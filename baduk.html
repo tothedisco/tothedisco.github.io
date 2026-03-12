@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>바둑 - 9×9</title>
+<title>바둑</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
@@ -20,11 +20,71 @@ body{
   display:flex;flex-direction:column;align-items:center;
   user-select:none;-webkit-user-select:none;
 }
+/* ===== START SCREEN ===== */
+#start-screen{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:100%;height:100vh;padding:20px;gap:24px;
+  animation:fadeIn .5s ease;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+#start-screen h1{
+  font-size:48px;font-weight:700;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  text-shadow:none;
+}
+#start-screen .subtitle{font-size:16px;color:var(--text-dim);margin-top:-8px}
+.section-label{font-size:14px;color:var(--text-dim);font-weight:500;margin-bottom:-8px}
+/* Board size selector */
+.size-selector{display:flex;gap:12px}
+.size-btn{
+  padding:16px 32px;font-family:inherit;font-size:18px;font-weight:700;
+  border:2px solid rgba(255,255,255,.1);border-radius:14px;
+  background:linear-gradient(135deg,var(--panel),var(--panel2));
+  color:var(--text);cursor:pointer;transition:all .25s;
+  min-width:120px;text-align:center;
+}
+.size-btn:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px)}
+.size-btn.selected{border-color:var(--accent);color:var(--accent);background:rgba(226,183,20,.1)}
+.size-btn .size-sub{font-size:12px;font-weight:400;color:var(--text-dim);margin-top:4px}
+.size-btn.selected .size-sub{color:var(--accent)}
+/* Difficulty cards */
+.diff-selector{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.diff-card{
+  padding:16px 20px;min-width:140px;
+  border:2px solid rgba(255,255,255,.1);border-radius:14px;
+  background:linear-gradient(135deg,var(--panel),var(--panel2));
+  cursor:pointer;transition:all .25s;text-align:center;
+}
+.diff-card:hover{transform:translateY(-2px)}
+.diff-card.selected{transform:translateY(-2px)}
+.diff-card .diff-icon{font-size:32px;margin-bottom:6px}
+.diff-card .diff-name{font-size:16px;font-weight:700}
+.diff-card .diff-desc{font-size:11px;color:var(--text-dim);margin-top:4px;line-height:1.4}
+.diff-card[data-diff="0"]:hover,.diff-card[data-diff="0"].selected{border-color:#2ecc71;box-shadow:0 0 20px rgba(46,204,113,.2)}
+.diff-card[data-diff="0"].selected .diff-name{color:#2ecc71}
+.diff-card[data-diff="1"]:hover,.diff-card[data-diff="1"].selected{border-color:#f1c40f;box-shadow:0 0 20px rgba(241,196,15,.2)}
+.diff-card[data-diff="1"].selected .diff-name{color:#f1c40f}
+.diff-card[data-diff="2"]:hover,.diff-card[data-diff="2"].selected{border-color:#e74c3c;box-shadow:0 0 20px rgba(231,76,60,.2)}
+.diff-card[data-diff="2"].selected .diff-name{color:#e74c3c}
+/* Start button */
+#start-btn{
+  padding:14px 48px;font-family:inherit;font-size:18px;font-weight:700;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#1a1a2e;border:none;border-radius:14px;cursor:pointer;
+  transition:all .25s;margin-top:8px;
+}
+#start-btn:hover{transform:scale(1.05);box-shadow:0 4px 20px rgba(226,183,20,.3)}
+#start-btn:active{transform:scale(.98)}
+
+/* ===== GAME SCREEN ===== */
 #app{
-  display:flex;flex-direction:column;align-items:center;
+  display:none;flex-direction:column;align-items:center;
   width:100%;max-width:900px;height:100vh;padding:8px;
   gap:6px;
 }
+#app.show{display:flex}
 /* Top bar */
 #topbar{
   display:flex;align-items:center;justify-content:space-between;
@@ -39,11 +99,28 @@ body{
 .stone-icon.white{background:radial-gradient(circle at 35% 30%,#fff,#ccc 70%);border:1px solid #999}
 .player-info .name{font-weight:500;font-size:14px}
 .player-info .captures{font-size:12px;color:var(--accent)}
+.captured-stones{display:flex;flex-wrap:wrap;gap:2px;margin-top:2px}
+.captured-mini{width:10px;height:10px;border-radius:50%;display:inline-block}
+.captured-mini.black{background:radial-gradient(circle at 35% 30%,#555,#111 70%)}
+.captured-mini.white{background:radial-gradient(circle at 35% 30%,#fff,#ccc 70%);border:1px solid #aaa}
 #turn-indicator{
   font-size:13px;font-weight:500;padding:4px 14px;
   border-radius:20px;background:rgba(226,183,20,.15);color:var(--accent);
-  white-space:nowrap;
+  white-space:nowrap;text-align:center;line-height:1.3;
 }
+#diff-badge{font-size:10px;display:block;opacity:.7}
+/* Score display */
+#score-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  width:100%;padding:6px 16px;
+  background:linear-gradient(135deg,rgba(15,52,96,.5),rgba(26,26,64,.5));
+  border-radius:10px;border:1px solid rgba(255,255,255,.04);
+  font-size:12px;flex-shrink:0;
+}
+.score-item{display:flex;align-items:center;gap:6px}
+.score-item .label{color:var(--text-dim)}
+.score-item .value{font-weight:700;color:var(--accent);font-size:14px}
+#score-bar .vs{color:var(--text-dim);font-size:11px}
 /* Main area */
 #main{
   display:flex;gap:10px;flex:1;width:100%;min-height:0;
@@ -55,7 +132,7 @@ body{
   border-radius:12px;overflow:hidden;
   box-shadow:0 8px 32px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05);
 }
-canvas{display:block;cursor:pointer}
+canvas#board{display:block;cursor:pointer}
 /* Side panel */
 #side{
   display:flex;flex-direction:column;gap:8px;
@@ -130,13 +207,17 @@ canvas{display:block;cursor:pointer}
 #result-box h2{font-size:28px;margin-bottom:8px;color:var(--accent)}
 #result-box .score{font-size:16px;margin:12px 0;line-height:1.8}
 #result-box button{
-  margin-top:16px;padding:12px 32px;
+  margin:8px;padding:12px 32px;
   font-family:inherit;font-size:15px;font-weight:700;
   background:linear-gradient(135deg,var(--accent),var(--accent2));
   color:#1a1a2e;border:none;border-radius:12px;cursor:pointer;
   transition:transform .2s;
 }
 #result-box button:hover{transform:scale(1.05)}
+#result-box .btn-secondary{
+  background:linear-gradient(135deg,var(--panel),var(--panel2));
+  color:var(--text);border:1px solid rgba(255,255,255,.1);
+}
 /* Confetti canvas */
 #confetti{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:101}
 /* Mobile */
@@ -148,8 +229,13 @@ canvas{display:block;cursor:pointer}
   #buttons{flex:1 1 100%}
   #guide-wrap,#sound-wrap{flex:1 1 45%}
   #topbar{padding:6px 10px}
+  #score-bar{padding:4px 10px}
   .player-info .name{font-size:12px}
   #turn-indicator{font-size:11px;padding:3px 10px}
+  #start-screen h1{font-size:36px}
+  .diff-card{min-width:100px;padding:12px 14px}
+  .diff-card .diff-icon{font-size:24px}
+  .size-btn{padding:12px 20px;font-size:16px;min-width:100px}
 }
 /* Scrollbar */
 ::-webkit-scrollbar{width:4px}
@@ -158,17 +244,74 @@ canvas{display:block;cursor:pointer}
 </style>
 </head>
 <body>
+
+<!-- START SCREEN -->
+<div id="start-screen">
+  <h1>⚫ 바둑 ⚪</h1>
+  <div class="subtitle">AI와 대국하기</div>
+
+  <div class="section-label">판 크기</div>
+  <div class="size-selector">
+    <div class="size-btn" data-size="5" onclick="selectSize(5)">
+      5×5
+      <div class="size-sub">입문자용</div>
+    </div>
+    <div class="size-btn selected" data-size="9" onclick="selectSize(9)">
+      9×9
+      <div class="size-sub">일반용</div>
+    </div>
+  </div>
+
+  <div class="section-label">난이도</div>
+  <div class="diff-selector">
+    <div class="diff-card selected" data-diff="0" onclick="selectDiff(0)">
+      <div class="diff-icon">🟢</div>
+      <div class="diff-name">초보</div>
+      <div class="diff-desc">랜덤 + 기본 따먹기<br>입문자에게 추천</div>
+    </div>
+    <div class="diff-card" data-diff="1" onclick="selectDiff(1)">
+      <div class="diff-icon">🟡</div>
+      <div class="diff-name">중수</div>
+      <div class="diff-desc">포석 + 영역 확장<br>가끔 실수함</div>
+    </div>
+    <div class="diff-card" data-diff="2" onclick="selectDiff(2)">
+      <div class="diff-icon">🔴</div>
+      <div class="diff-name">고수</div>
+      <div class="diff-desc">최적 수 탐색<br>이기기 매우 어려움</div>
+    </div>
+  </div>
+
+  <button id="start-btn" onclick="startGame()">게임 시작</button>
+</div>
+
+<!-- GAME SCREEN -->
 <div id="app">
   <div id="topbar">
     <div class="player-info">
       <div class="stone-icon black"></div>
-      <div><div class="name">당신 (흑)</div><div class="captures" id="black-captures">잡은 돌: 0</div></div>
+      <div>
+        <div class="name">당신 (흑)</div>
+        <div class="captures" id="black-captures">잡은 돌: 0</div>
+        <div class="captured-stones" id="black-captured-display"></div>
+      </div>
     </div>
-    <div id="turn-indicator">● 흑 차례</div>
+    <div id="turn-indicator">
+      ● 흑 차례
+      <span id="diff-badge"></span>
+    </div>
     <div class="player-info" style="flex-direction:row-reverse;text-align:right">
       <div class="stone-icon white"></div>
-      <div><div class="name">AI (백)</div><div class="captures" id="white-captures">잡은 돌: 0</div></div>
+      <div>
+        <div class="name">AI (백)</div>
+        <div class="captures" id="white-captures">잡은 돌: 0</div>
+        <div class="captured-stones" id="white-captured-display"></div>
+      </div>
     </div>
+  </div>
+  <div id="score-bar">
+    <div class="score-item"><span class="label">⚫ 흑</span><span class="value" id="black-score">0</span></div>
+    <div class="vs">형세 판단</div>
+    <div class="score-item"><span class="value" id="white-score">0</span><span class="label">백 ⚪</span></div>
   </div>
   <div id="main">
     <div id="board-wrap"><canvas id="board"></canvas></div>
@@ -185,7 +328,7 @@ canvas{display:block;cursor:pointer}
       <div id="buttons">
         <button onclick="doPass()">패스</button>
         <button onclick="doUndo()">무르기</button>
-        <button onclick="newGame()">새 게임</button>
+        <button onclick="backToMenu()">새 게임</button>
         <button class="danger" onclick="doResign()">항복</button>
       </div>
     </div>
@@ -195,10 +338,54 @@ canvas{display:block;cursor:pointer}
 <canvas id="confetti"></canvas>
 
 <script>
-// ===== CONSTANTS =====
-const SZ=9,EMPTY=0,BLACK=1,WHITE=2;
-const COLS='ABCDEFGHJ'; // I is skipped in Go
-const STAR_POINTS=[[2,2],[2,6],[6,2],[6,6],[4,4]];
+// ===== CONFIGURATION =====
+const EMPTY=0,BLACK=1,WHITE=2;
+let SZ=9; // will be set by start screen
+let DIFFICULTY=0; // 0=beginner,1=intermediate,2=expert
+const DIFF_NAMES=['🟢 초보','🟡 중수','🔴 고수'];
+const COLS_9='ABCDEFGHJ';
+const COLS_5='ABCDE';
+let COLS=COLS_9;
+let KOMI=6.5;
+let STAR_POINTS=[];
+
+function getStarPoints(sz){
+  if(sz===9)return[[2,2],[2,6],[6,2],[6,6],[4,4]];
+  if(sz===5)return[[2,2]]; // center only for 5x5
+  return[];
+}
+
+// ===== START SCREEN =====
+let selectedSize=9, selectedDiff=0;
+
+function selectSize(s){
+  selectedSize=s;
+  document.querySelectorAll('.size-btn').forEach(b=>b.classList.toggle('selected',parseInt(b.dataset.size)===s));
+}
+function selectDiff(d){
+  selectedDiff=d;
+  document.querySelectorAll('.diff-card').forEach(c=>c.classList.toggle('selected',parseInt(c.dataset.diff)===d));
+}
+function startGame(){
+  SZ=selectedSize;
+  DIFFICULTY=selectedDiff;
+  COLS=SZ===9?COLS_9:COLS_5;
+  KOMI=SZ===9?6.5:0;
+  STAR_POINTS=getStarPoints(SZ);
+  document.getElementById('start-screen').style.display='none';
+  document.getElementById('app').classList.add('show');
+  document.getElementById('diff-badge').textContent=DIFF_NAMES[DIFFICULTY];
+  newGame();
+  resizeCanvas();
+  gameLoop();
+}
+function backToMenu(){
+  gameOver=true;
+  cancelAnimationFrame(animFrameId);
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('start-screen').style.display='';
+}
 
 // ===== AUDIO =====
 let audioCtx=null, soundOn=true;
@@ -207,14 +394,11 @@ function playSound(type){
   if(!soundOn||!audioCtx)return;
   const t=audioCtx.currentTime;
   if(type==='place'){
-    // "톡" stone placement
     const o=audioCtx.createOscillator(),g=audioCtx.createGain();
     o.type='sine';o.frequency.setValueAtTime(800+Math.random()*200,t);
     o.frequency.exponentialRampToValueAtTime(200,t+.08);
     g.gain.setValueAtTime(.3,t);g.gain.exponentialRampToValueAtTime(.001,t+.1);
-    o.connect(g);g.connect(audioCtx.destination);
-    o.start(t);o.stop(t+.1);
-    // Click noise
+    o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+.1);
     const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*.02,audioCtx.sampleRate);
     const d=buf.getChannelData(0);
     for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(d.length*.15));
@@ -234,8 +418,7 @@ function playSound(type){
       g.gain.setValueAtTime(0,t+i*.15);
       g.gain.linearRampToValueAtTime(.2,t+i*.15+.05);
       g.gain.exponentialRampToValueAtTime(.001,t+i*.15+.4);
-      o.connect(g);g.connect(audioCtx.destination);
-      o.start(t+i*.15);o.stop(t+i*.15+.4);
+      o.connect(g);g.connect(audioCtx.destination);o.start(t+i*.15);o.stop(t+i*.15+.4);
     });
   }
 }
@@ -246,10 +429,11 @@ let history=[], koPoint=null, lastMove=null;
 let consecutivePasses=0, gameOver=false;
 let guideOn=false;
 let particles=[], placingAnim=null;
+let animFrameId=null;
+let moveCount=0;
 
 function newBoard(){return Array.from({length:SZ},()=>new Int8Array(SZ))}
 function copyBoard(b){return b.map(r=>new Int8Array(r))}
-function boardKey(b){return b.map(r=>r.join('')).join('|')}
 
 // ===== GO LOGIC =====
 function neighbors(x,y){
@@ -281,30 +465,26 @@ function removeGroup(b,stones){
 }
 
 function tryMove(b,x,y,color,koP){
+  if(x<0||x>=SZ||y<0||y>=SZ)return null;
   if(b[y][x]!==EMPTY)return null;
   const nb=copyBoard(b);
   nb[y][x]=color;
   const opp=color===BLACK?WHITE:BLACK;
   let captured=[];
-  // Remove opponent groups with 0 liberties
   for(const[nx,ny]of neighbors(x,y)){
     if(nb[ny][nx]===opp){
       const g=getGroup(nb,nx,ny);
       if(g.liberties.size===0){captured.push(...g.stones);removeGroup(nb,g.stones)}
     }
   }
-  // Check self-capture (suicide)
   const self=getGroup(nb,x,y);
   if(self.liberties.size===0)return null;
   // Ko check
   if(koP&&captured.length===1&&captured[0][0]===koP[0]&&captured[0][1]===koP[1]){
-    // More precise: check if board state matches
-    // Simple ko: captured exactly 1, and placing on previous ko point
     return null;
   }
   let newKo=null;
   if(captured.length===1){
-    // Check if this creates a ko situation
     const g2=getGroup(nb,x,y);
     if(g2.stones.length===1)newKo=[captured[0][0],captured[0][1]];
   }
@@ -321,7 +501,6 @@ function scoreGame(b){
   const visited=new Set();
   for(let y=0;y<SZ;y++)for(let x=0;x<SZ;x++){
     if(b[y][x]!==EMPTY||visited.has(y*SZ+x))continue;
-    // Flood fill empty region
     const region=[],adj=new Set();
     const stack=[[x,y]];
     while(stack.length){
@@ -334,18 +513,23 @@ function scoreGame(b){
         else if(b[ny][nx]!==EMPTY)adj.add(b[ny][nx]);
       }
     }
-    // If only one color adjacent, it's that color's territory
     if(adj.size===1){
       const owner=[...adj][0];
       for(const[rx,ry]of region)territory[ry][rx]=owner;
     }
   }
-  let blackScore=captures[BLACK], whiteScore=captures[WHITE]+6.5; // komi
+  let blackScore=captures[BLACK], whiteScore=captures[WHITE]+KOMI;
   for(let y=0;y<SZ;y++)for(let x=0;x<SZ;x++){
     if(territory[y][x]===BLACK)blackScore++;
     else if(territory[y][x]===WHITE)whiteScore++;
   }
   return{blackScore,whiteScore,territory};
+}
+
+// Estimate score for real-time display
+function estimateScore(){
+  const s=scoreGame(board);
+  return s;
 }
 
 // ===== AI =====
@@ -357,73 +541,327 @@ function aiMove(){
   }
   if(moves.length===0){doAIPass();return}
 
-  // Score each move
-  let best=null,bestScore=-Infinity;
+  let pick=null;
+  if(DIFFICULTY===0) pick=aiMoveBeginner(moves);
+  else if(DIFFICULTY===1) pick=aiMoveIntermediate(moves);
+  else pick=aiMoveExpert(moves);
+
+  if(pick)placeStone(pick[0],pick[1],WHITE);
+  else doAIPass();
+}
+
+// --- BEGINNER AI ---
+function aiMoveBeginner(moves){
+  const roll=Math.random();
+
+  // 30% try to capture
+  if(roll<0.3){
+    const captureMoves=[];
+    for(const[x,y]of moves){
+      const result=tryMove(board,x,y,WHITE,koPoint);
+      if(result&&result.captured.length>0)captureMoves.push([x,y]);
+    }
+    if(captureMoves.length>0)return captureMoves[Math.floor(Math.random()*captureMoves.length)];
+  }
+
+  // 20% defend own atari
+  if(roll<0.5){
+    const defenseMoves=[];
+    for(const[x,y]of moves){
+      for(const[nx,ny]of neighbors(x,y)){
+        if(nx>=0&&nx<SZ&&ny>=0&&ny<SZ&&board[ny][nx]===WHITE){
+          const g=getGroup(board,nx,ny);
+          if(g.liberties.size===1){
+            const result=tryMove(board,x,y,WHITE,koPoint);
+            if(result){
+              const newG=getGroup(result.board,nx,ny);
+              if(newG.liberties.size>1)defenseMoves.push([x,y]);
+            }
+          }
+        }
+      }
+    }
+    if(defenseMoves.length>0)return defenseMoves[Math.floor(Math.random()*defenseMoves.length)];
+  }
+
+  // 50% random (but avoid filling own eyes)
+  const safeMoves=moves.filter(([x,y])=>{
+    let ownAdj=0,adjCount=0;
+    for(const[nx,ny]of neighbors(x,y)){adjCount++;if(board[ny][nx]===WHITE)ownAdj++;}
+    return !(ownAdj===adjCount&&adjCount>=2);
+  });
+  if(safeMoves.length>0)return safeMoves[Math.floor(Math.random()*safeMoves.length)];
+  return moves[Math.floor(Math.random()*moves.length)];
+}
+
+// --- INTERMEDIATE AI ---
+function aiMoveIntermediate(moves){
   const scored=[];
+  const mid=Math.floor(SZ/2);
+  const corners=SZ===9?[[2,2],[2,6],[6,2],[6,6]]:[[1,1],[1,3],[3,1],[3,3]];
+  const edges=[];
+  const edgeDist=SZ===9?2:1;
+  for(let i=edgeDist;i<SZ-edgeDist;i++){
+    edges.push([i,edgeDist],[i,SZ-1-edgeDist],[edgeDist,i],[SZ-1-edgeDist,i]);
+  }
+
   for(const[x,y]of moves){
     let score=0;
     const result=tryMove(board,x,y,WHITE,koPoint);
     if(!result)continue;
 
-    // 1) Capture (high priority)
-    score+=result.captured.length*15;
+    // Capture
+    score+=result.captured.length*20;
 
-    // 2) Save own group in atari
+    // Defend own atari
     for(const[nx,ny]of neighbors(x,y)){
       if(board[ny][nx]===WHITE){
         const g=getGroup(board,nx,ny);
-        if(g.liberties.size===1)score+=12;
+        if(g.liberties.size===1){
+          const newG=getGroup(result.board,nx,ny);
+          if(newG.liberties.size>1)score+=15;
+        }
       }
     }
 
-    // 3) Atari opponent
+    // Atari opponent
     for(const[nx,ny]of neighbors(x,y)){
       if(result.board[ny][nx]===BLACK){
         const g=getGroup(result.board,nx,ny);
-        if(g.liberties.size===1)score+=8;
+        if(g.liberties.size===1)score+=10;
       }
     }
 
-    // 4) Liberties of placed stone
+    // Fuseki: empty corners first
+    if(moveCount<(SZ===9?12:6)){
+      for(const[cx,cy]of corners){
+        if(x===cx&&y===cy&&board[cy][cx]===EMPTY)score+=12;
+      }
+      // Then edges
+      for(const[ex,ey]of edges){
+        if(x===ex&&y===ey&&board[ey][ex]===EMPTY)score+=5;
+      }
+    }
+
+    // Territory expansion
+    let emptyNear=0,friendNear=0,enemyNear=0;
+    for(const[nx,ny]of neighbors(x,y)){
+      if(board[ny][nx]===EMPTY)emptyNear++;
+      else if(board[ny][nx]===WHITE)friendNear++;
+      else enemyNear++;
+    }
+    score+=emptyNear*1.5;
+    score+=friendNear*2; // connection
+
+    // Invade opponent territory
+    if(enemyNear>=2&&emptyNear>=1)score+=7;
+
+    // Avoid filling own eyes
+    if(friendNear===neighbors(x,y).length&&friendNear>=2)score-=25;
+
+    // Reduce opponent liberties
+    for(const[nx,ny]of neighbors(x,y)){
+      if(board[ny][nx]===BLACK){
+        const g=getGroup(board,nx,ny);
+        if(g.liberties.size===2)score+=5;
+      }
+    }
+
+    // Group liberties
     const g=getGroup(result.board,x,y);
-    score+=Math.min(g.liberties.size,4)*1.5;
+    score+=Math.min(g.liberties.size,5)*1.5;
 
-    // 5) Prefer center-ish
-    const cx=x-4,cy=y-4;
-    score-=(Math.abs(cx)+Math.abs(cy))*.3;
+    // Center preference (slight)
+    const dx=x-mid,dy=y-mid;
+    score-=(Math.abs(dx)+Math.abs(dy))*.2;
 
-    // 6) Avoid edges early in game (first 10 moves)
-    if(history.length<20&&(x===0||x===8||y===0||y===8))score-=3;
-
-    // 7) Proximity to existing stones (territorial)
-    for(const[nx,ny]of neighbors(x,y)){
-      if(board[ny][nx]===WHITE)score+=2;
-      if(board[ny][nx]===BLACK)score+=1;
-    }
-
-    // 8) Don't fill own eye
-    let ownAdj=0,adjCount=0;
-    for(const[nx,ny]of neighbors(x,y)){
-      adjCount++;
-      if(board[ny][nx]===WHITE)ownAdj++;
-    }
-    if(ownAdj===adjCount&&adjCount>=2)score-=20;
-
-    // Add randomness so it's not too deterministic
-    score+=Math.random()*4;
-
+    score+=Math.random()*3;
     scored.push({x,y,score});
   }
 
   scored.sort((a,b)=>b.score-a.score);
+  if(scored.length===0)return null;
 
-  // Sometimes make suboptimal move (beginner AI)
-  let pick=scored[0];
-  if(scored.length>1&&Math.random()<.25)pick=scored[Math.min(1,scored.length-1)];
-  if(scored.length>2&&Math.random()<.1)pick=scored[Math.min(2,scored.length-1)];
+  // 10% chance of suboptimal (mistake)
+  if(scored.length>1&&Math.random()<0.1){
+    const idx=Math.min(1+Math.floor(Math.random()*2),scored.length-1);
+    return[scored[idx].x,scored[idx].y];
+  }
+  return[scored[0].x,scored[0].y];
+}
 
-  if(pick)placeStone(pick.x,pick.y,WHITE);
-  else doAIPass();
+// --- EXPERT AI ---
+function aiMoveExpert(moves){
+  const scored=[];
+  const mid=Math.floor(SZ/2);
+  const corners=SZ===9?[[2,2],[2,6],[6,2],[6,6]]:[[1,1],[1,3],[3,1],[3,3]];
+
+  for(const[x,y]of moves){
+    let score=0;
+    const result=tryMove(board,x,y,WHITE,koPoint);
+    if(!result)continue;
+
+    // === Capture (+100) ===
+    if(result.captured.length>0) score+=100+result.captured.length*10;
+
+    // === Defend own atari (+90) ===
+    for(const[nx,ny]of neighbors(x,y)){
+      if(board[ny][nx]===WHITE){
+        const g=getGroup(board,nx,ny);
+        if(g.liberties.size===1){
+          const newG=getGroup(result.board,nx,ny);
+          if(newG.liberties.size>1)score+=90+g.stones.length*5;
+        }
+      }
+    }
+
+    // === Atari opponent (+70) ===
+    for(const[nx,ny]of neighbors(x,y)){
+      if(result.board[ny][nx]===BLACK){
+        const g=getGroup(result.board,nx,ny);
+        if(g.liberties.size===1)score+=70+g.stones.length*5;
+      }
+    }
+
+    // === Empty corner (+60) ===
+    if(moveCount<(SZ===9?10:5)){
+      for(const[cx,cy]of corners){
+        if(x===cx&&y===cy&&board[cy][cx]===EMPTY)score+=60;
+      }
+    }
+
+    // === Territory expansion (+50) ===
+    {
+      // Count influence: how many empty squares near this position are near friendly stones
+      let influence=0;
+      for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+        const nx2=x+dx,ny2=y+dy;
+        if(nx2<0||nx2>=SZ||ny2<0||ny2>=SZ)continue;
+        if(result.board[ny2][nx2]===EMPTY){
+          // Check if surrounded more by white
+          let wc=0,bc=0;
+          for(const[ax,ay]of neighbors(nx2,ny2)){
+            if(result.board[ay][ax]===WHITE)wc++;
+            else if(result.board[ay][ax]===BLACK)bc++;
+          }
+          if(wc>bc)influence++;
+        }
+      }
+      score+=Math.min(influence,8)*6.25; // up to +50
+    }
+
+    // === Invade opponent territory (+45) ===
+    {
+      let enemyInfluence=0;
+      for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+        const nx2=x+dx,ny2=y+dy;
+        if(nx2<0||nx2>=SZ||ny2<0||ny2>=SZ)continue;
+        if(board[ny2][nx2]===BLACK)enemyInfluence++;
+      }
+      if(enemyInfluence>=3){
+        const g=getGroup(result.board,x,y);
+        if(g.liberties.size>=2)score+=45;
+      }
+    }
+
+    // === Reduce opponent liberties (+40) ===
+    for(const[nx,ny]of neighbors(x,y)){
+      if(board[ny][nx]===BLACK){
+        const gBefore=getGroup(board,nx,ny);
+        const gAfter=getGroup(result.board,nx,ny);
+        if(gAfter.stones.length>0&&gAfter.liberties.size<gBefore.liberties.size){
+          score+=40*(1/(gAfter.liberties.size||1));
+        }
+      }
+    }
+
+    // === Make eyes (+35) ===
+    {
+      let ownAdj=0,totalAdj=0;
+      for(const[nx,ny]of neighbors(x,y)){
+        totalAdj++;
+        if(result.board[ny][nx]===WHITE)ownAdj++;
+      }
+      // Don't fill own potential eye, but reward moves that create eye shapes nearby
+      if(ownAdj===totalAdj&&totalAdj>=2){
+        score-=50; // Don't fill own eye!
+      } else {
+        // Check if this move helps create an eye for a friendly group
+        for(const[nx,ny]of neighbors(x,y)){
+          if(result.board[ny][nx]===WHITE){
+            const g=getGroup(result.board,nx,ny);
+            if(g.stones.length>=3){
+              // Count potential eyes
+              let eyeCount=0;
+              for(const lib of g.liberties){
+                const lx=lib%SZ,ly=Math.floor(lib/SZ);
+                let surroundedByGroup=true;
+                for(const[ax,ay]of neighbors(lx,ly)){
+                  if(result.board[ay][ax]!==WHITE&&!(ax===x&&ay===y))surroundedByGroup=false;
+                }
+                if(surroundedByGroup)eyeCount++;
+              }
+              if(eyeCount>=1)score+=35;
+            }
+          }
+        }
+      }
+    }
+
+    // === Connection/extension (+30) ===
+    for(const[nx,ny]of neighbors(x,y)){
+      if(board[ny][nx]===WHITE){
+        score+=8; // basic connection bonus
+        const g=getGroup(board,nx,ny);
+        if(g.liberties.size<=2)score+=15; // saving a weak group
+      }
+    }
+
+    // === Center influence (+20) ===
+    {
+      const dx=Math.abs(x-mid),dy=Math.abs(y-mid);
+      const centerScore=Math.max(0,mid-Math.max(dx,dy));
+      score+=centerScore*(20/mid);
+    }
+
+    // === Endgame: boundary moves ===
+    if(moveCount>(SZ*SZ*0.4)){
+      // Prefer boundary points (adjacent to both colors' territory)
+      let nearBlack=false,nearWhite=false,nearEmpty=false;
+      for(const[nx,ny]of neighbors(x,y)){
+        if(board[ny][nx]===BLACK)nearBlack=true;
+        if(board[ny][nx]===WHITE)nearWhite=true;
+        if(board[ny][nx]===EMPTY)nearEmpty=true;
+      }
+      if(nearBlack&&nearWhite)score+=15; // boundary
+      if(nearBlack&&nearEmpty&&!nearWhite)score+=10; // reduce opponent
+    }
+
+    // === Ko awareness ===
+    if(result.ko){
+      // Starting a ko - evaluate if worth it
+      score-=5; // slight penalty for creating ko complications
+    }
+
+    // Avoid 1st line early
+    if(moveCount<SZ*2&&(x===0||x===SZ-1||y===0||y===SZ-1))score-=15;
+
+    score+=Math.random()*2; // tiny variance
+    scored.push({x,y,score});
+  }
+
+  scored.sort((a,b)=>b.score-a.score);
+  if(scored.length===0)return null;
+
+  // Pick from top 3 (slight variation)
+  const topN=Math.min(3,scored.length);
+  const weights=[0.6,0.25,0.15];
+  let r=Math.random(),cumul=0;
+  for(let i=0;i<topN;i++){
+    cumul+=weights[i];
+    if(r<cumul)return[scored[i].x,scored[i].y];
+  }
+  return[scored[0].x,scored[0].y];
 }
 
 function doAIPass(){
@@ -463,18 +901,17 @@ function placeStone(x,y,color){
   const result=tryMove(board,x,y,color,koPoint);
   if(!result)return false;
 
-  // Save history for undo
-  history.push({board:copyBoard(board),captures:{...captures},koPoint,lastMove,turn:color,consecutivePasses});
+  history.push({board:copyBoard(board),captures:{...captures},koPoint,lastMove,turn:color,consecutivePasses,moveCount});
 
   board=result.board;
   koPoint=result.ko;
   lastMove=[x,y];
   consecutivePasses=0;
+  moveCount++;
 
   if(result.captured.length>0){
     captures[color]+=result.captured.length;
     playSound('capture');
-    // Particles for captured stones
     for(const[cx,cy]of result.captured){
       spawnParticles(cx,cy,color===BLACK?WHITE:BLACK);
     }
@@ -482,7 +919,6 @@ function placeStone(x,y,color){
     playSound('place');
   }
 
-  // Place animation
   placingAnim={x,y,t:0,color};
 
   const coord=COLS[x]+(SZ-y);
@@ -502,7 +938,7 @@ function doPass(){
   if(gameOver||turn!==BLACK)return;
   initAudio();
   consecutivePasses++;
-  history.push({board:copyBoard(board),captures:{...captures},koPoint,lastMove,turn:BLACK,consecutivePasses:consecutivePasses-1});
+  history.push({board:copyBoard(board),captures:{...captures},koPoint,lastMove,turn:BLACK,consecutivePasses:consecutivePasses-1,moveCount});
   addLog('패스','black');
   turn=WHITE;
   updateUI();
@@ -512,12 +948,11 @@ function doPass(){
 
 function doUndo(){
   if(gameOver||history.length<2)return;
-  // Undo AI move and player move
   history.pop(); // AI
   const prev=history.pop(); // Player
   board=prev.board;captures=prev.captures;koPoint=prev.koPoint;
   lastMove=prev.lastMove;turn=BLACK;consecutivePasses=prev.consecutivePasses;
-  // Remove last 2 log entries
+  moveCount=prev.moveCount;
   const log=document.getElementById('move-log');
   const entries=log.querySelectorAll('.entry');
   if(entries.length>=1)entries[entries.length-1].remove();
@@ -535,6 +970,7 @@ function newGame(){
   board=newBoard();turn=BLACK;captures={1:0,2:0};
   history=[];koPoint=null;lastMove=null;
   consecutivePasses=0;gameOver=false;particles=[];placingAnim=null;
+  moveCount=0;
   document.getElementById('move-log').innerHTML='<div class="title">📜 착수 기록</div>';
   document.getElementById('overlay').classList.remove('show');
   updateUI();
@@ -545,20 +981,24 @@ function endGame(){
   const{blackScore,whiteScore,territory}=scoreGame(board);
   playSound('end');
   const winner=blackScore>whiteScore?'당신 (흑) 승리! 🎉':'AI (백) 승리!';
-  const detail=`흑: ${blackScore.toFixed(1)}점\n백: ${whiteScore.toFixed(1)}점 (덤 6.5)`;
+  const komiText=KOMI>0?` (덤 ${KOMI})`:'';
+  const detail=`흑: ${blackScore.toFixed(1)}점\n백: ${whiteScore.toFixed(1)}점${komiText}`;
   showResult(winner,detail,territory);
   if(blackScore>whiteScore)launchConfetti();
 }
 
 function showResult(title,detail,territory){
   const box=document.getElementById('result-box');
-  if(territory){
-    // Draw territory on board
-    drawBoard(territory);
-  }
+  if(territory)drawBoard(territory);
   box.innerHTML=`<h2>${title}</h2><div class="score">${detail.replace(/\n/g,'<br>')}</div>
-    <button onclick="newGame()">새 게임</button>`;
+    <button onclick="backToMenu()">메뉴로</button>
+    <button class="btn-secondary" onclick="restartSame()">다시 하기</button>`;
   document.getElementById('overlay').classList.add('show');
+}
+
+function restartSame(){
+  document.getElementById('overlay').classList.remove('show');
+  newGame();
 }
 
 function addLog(text,cls){
@@ -574,7 +1014,27 @@ function addLog(text,cls){
 function updateUI(){
   document.getElementById('black-captures').textContent=`잡은 돌: ${captures[BLACK]}`;
   document.getElementById('white-captures').textContent=`잡은 돌: ${captures[WHITE]}`;
-  document.getElementById('turn-indicator').textContent=gameOver?'게임 종료':(turn===BLACK?'● 흑 차례':'○ 백 차례');
+  document.getElementById('turn-indicator').innerHTML=
+    (gameOver?'게임 종료':(turn===BLACK?'● 흑 차례':'○ 백 차례'))+
+    `<span id="diff-badge">${DIFF_NAMES[DIFFICULTY]}</span>`;
+
+  // Captured stones display
+  const bDisp=document.getElementById('black-captured-display');
+  const wDisp=document.getElementById('white-captured-display');
+  bDisp.innerHTML='';wDisp.innerHTML='';
+  for(let i=0;i<Math.min(captures[BLACK],20);i++){
+    const s=document.createElement('span');s.className='captured-mini white';bDisp.appendChild(s);
+  }
+  if(captures[BLACK]>20){const more=document.createElement('span');more.textContent=`+${captures[BLACK]-20}`;more.style.cssText='font-size:10px;color:var(--text-dim)';bDisp.appendChild(more);}
+  for(let i=0;i<Math.min(captures[WHITE],20);i++){
+    const s=document.createElement('span');s.className='captured-mini black';wDisp.appendChild(s);
+  }
+  if(captures[WHITE]>20){const more=document.createElement('span');more.textContent=`+${captures[WHITE]-20}`;more.style.cssText='font-size:10px;color:var(--text-dim)';wDisp.appendChild(more);}
+
+  // Score estimate
+  const est=estimateScore();
+  document.getElementById('black-score').textContent=est.blackScore.toFixed(1);
+  document.getElementById('white-score').textContent=est.whiteScore.toFixed(1);
 }
 
 // ===== CANVAS RENDERING =====
@@ -585,28 +1045,26 @@ let cellSize,padding,boardPx,hoverPos=null;
 function resizeCanvas(){
   const wrap=document.getElementById('board-wrap');
   const mainEl=document.getElementById('main');
-  const side=document.getElementById('side');
-  // Calculate available space
   const appH=document.getElementById('app').clientHeight;
   const topH=document.getElementById('topbar').offsetHeight;
-  const availH=appH-topH-20;
+  const scoreH=document.getElementById('score-bar').offsetHeight;
+  const availH=appH-topH-scoreH-24;
   let availW=mainEl.clientWidth;
-  // Check if side panel is beside or below
   const isMobile=window.innerWidth<=700;
   if(!isMobile)availW-=220;
   let sz=Math.min(availW,availH);
-  sz=Math.max(sz,280);
+  sz=Math.max(sz,240);
   sz=Math.min(sz,600);
   canvas.width=canvas.height=sz*devicePixelRatio;
   canvas.style.width=canvas.style.height=sz+'px';
   boardPx=sz;
-  padding=sz*.07;
+  padding=sz*(SZ===5?.1:.07);
   cellSize=(sz-padding*2)/(SZ-1);
 }
 
 function drawBoard(territory){
   resizeCanvas();
-  const W=canvas.width,s=devicePixelRatio;
+  const s=devicePixelRatio;
   ctx.save();ctx.scale(s,s);
 
   // Board background - wood texture
@@ -617,32 +1075,27 @@ function drawBoard(territory){
   ctx.fillStyle=woodGrad;
   ctx.fillRect(0,0,boardPx,boardPx);
 
-  // Wood grain lines
+  // Wood grain
   ctx.strokeStyle='rgba(160,120,50,.12)';
   ctx.lineWidth=1;
   for(let i=0;i<40;i++){
-    const y=i*(boardPx/40)+Math.sin(i*.7)*3;
-    ctx.beginPath();
-    ctx.moveTo(0,y);
-    for(let x=0;x<boardPx;x+=10){
-      ctx.lineTo(x,y+Math.sin(x*.02+i)*2);
-    }
+    const yy=i*(boardPx/40)+Math.sin(i*.7)*3;
+    ctx.beginPath();ctx.moveTo(0,yy);
+    for(let xx=0;xx<boardPx;xx+=10)ctx.lineTo(xx,yy+Math.sin(xx*.02+i)*2);
     ctx.stroke();
   }
 
   const p=padding,cs=cellSize;
 
-  // Grid lines
-  ctx.strokeStyle='rgba(0,0,0,.65)';
-  ctx.lineWidth=1;
+  // Grid
+  ctx.strokeStyle='rgba(0,0,0,.65)';ctx.lineWidth=1;
   for(let i=0;i<SZ;i++){
     ctx.beginPath();ctx.moveTo(p+i*cs,p);ctx.lineTo(p+i*cs,p+(SZ-1)*cs);ctx.stroke();
     ctx.beginPath();ctx.moveTo(p,p+i*cs);ctx.lineTo(p+(SZ-1)*cs,p+i*cs);ctx.stroke();
   }
 
-  // Outer border (thicker)
-  ctx.strokeStyle='rgba(0,0,0,.8)';
-  ctx.lineWidth=2;
+  // Border
+  ctx.strokeStyle='rgba(0,0,0,.8)';ctx.lineWidth=2;
   ctx.strokeRect(p,p,(SZ-1)*cs,(SZ-1)*cs);
 
   // Star points
@@ -692,10 +1145,7 @@ function drawBoard(territory){
     if(board[y][x]===EMPTY)continue;
     const px=p+x*cs,py=p+y*cs;
     let scale=1;
-    // Placing animation
-    if(placingAnim&&placingAnim.x===x&&placingAnim.y===y&&placingAnim.t<1){
-      scale=placingAnim.t;
-    }
+    if(placingAnim&&placingAnim.x===x&&placingAnim.y===y&&placingAnim.t<1)scale=placingAnim.t;
     drawStone(px,py,stoneR*scale,board[y][x]);
   }
 
@@ -703,9 +1153,8 @@ function drawBoard(territory){
   if(lastMove&&!territory){
     const[lx,ly]=lastMove;
     const px=p+lx*cs,py=p+ly*cs;
-    ctx.fillStyle=board[ly][lx]===BLACK?'rgba(255,60,60,.85)':'rgba(255,60,60,.85)';
+    ctx.fillStyle='rgba(255,60,60,.85)';
     ctx.beginPath();
-    // Small triangle
     const ms=cs*.15;
     ctx.moveTo(px,py-ms);ctx.lineTo(px-ms*.87,py+ms*.5);ctx.lineTo(px+ms*.87,py+ms*.5);
     ctx.closePath();ctx.fill();
@@ -714,7 +1163,7 @@ function drawBoard(territory){
   // Hover preview
   if(hoverPos&&!gameOver&&turn===BLACK&&!territory){
     const[hx,hy]=hoverPos;
-    if(board[hy][hx]===EMPTY&&isValidMove(board,hx,hy,BLACK,koPoint)){
+    if(hx>=0&&hx<SZ&&hy>=0&&hy<SZ&&board[hy][hx]===EMPTY&&isValidMove(board,hx,hy,BLACK,koPoint)){
       ctx.globalAlpha=.35;
       drawStone(p+hx*cs,p+hy*cs,stoneR,BLACK);
       ctx.globalAlpha=1;
@@ -733,16 +1182,13 @@ function drawBoard(territory){
 function drawStone(cx,cy,r,color){
   if(r<=0)return;
   ctx.save();
-  // Shadow
   ctx.fillStyle='rgba(0,0,0,.3)';
   ctx.beginPath();ctx.arc(cx+2,cy+2,r,0,Math.PI*2);ctx.fill();
-
   if(color===BLACK){
     const g=ctx.createRadialGradient(cx-r*.3,cy-r*.3,r*.1,cx,cy,r);
     g.addColorStop(0,'#555');g.addColorStop(.4,'#333');g.addColorStop(1,'#111');
     ctx.fillStyle=g;
     ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
-    // Highlight
     const h=ctx.createRadialGradient(cx-r*.3,cy-r*.35,0,cx-r*.3,cy-r*.35,r*.5);
     h.addColorStop(0,'rgba(255,255,255,.25)');h.addColorStop(1,'rgba(255,255,255,0)');
     ctx.fillStyle=h;
@@ -752,7 +1198,6 @@ function drawStone(cx,cy,r,color){
     g.addColorStop(0,'#fff');g.addColorStop(.6,'#eee');g.addColorStop(1,'#ccc');
     ctx.fillStyle=g;
     ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
-    // Subtle highlight
     const h=ctx.createRadialGradient(cx-r*.25,cy-r*.3,0,cx-r*.25,cy-r*.3,r*.4);
     h.addColorStop(0,'rgba(255,255,255,.7)');h.addColorStop(1,'rgba(255,255,255,0)');
     ctx.fillStyle=h;
@@ -767,10 +1212,7 @@ function spawnParticles(gx,gy,color){
   for(let i=0;i<8;i++){
     const angle=Math.random()*Math.PI*2;
     const speed=1+Math.random()*3;
-    particles.push({
-      px,py,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
-      r:2+Math.random()*3,alpha:1,color
-    });
+    particles.push({px,py,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:2+Math.random()*3,alpha:1,color});
   }
 }
 
@@ -806,11 +1248,11 @@ function launchConfetti(){
     if(frames++>180){cctx.clearRect(0,0,cc.width,cc.height);return}
     cctx.clearRect(0,0,cc.width,cc.height);
     cctx.save();cctx.scale(devicePixelRatio,devicePixelRatio);
-    for(const p of pieces){
-      p.x+=p.vx;p.y+=p.vy;p.vy+=.15;p.rot+=p.vr;
-      cctx.save();cctx.translate(p.x/devicePixelRatio,p.y/devicePixelRatio);
-      cctx.rotate(p.rot);cctx.fillStyle=p.color;
-      cctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+    for(const pp of pieces){
+      pp.x+=pp.vx;pp.y+=pp.vy;pp.vy+=.15;pp.rot+=pp.vr;
+      cctx.save();cctx.translate(pp.x/devicePixelRatio,pp.y/devicePixelRatio);
+      cctx.rotate(pp.rot);cctx.fillStyle=pp.color;
+      cctx.fillRect(-pp.w/2,-pp.h/2,pp.w,pp.h);
       cctx.restore();
     }
     cctx.restore();
@@ -831,10 +1273,7 @@ function getGridPos(e){
   return[gx,gy];
 }
 
-canvas.addEventListener('mousemove',e=>{
-  const pos=getGridPos(e);
-  hoverPos=pos;
-});
+canvas.addEventListener('mousemove',e=>{hoverPos=getGridPos(e)});
 canvas.addEventListener('mouseleave',()=>{hoverPos=null});
 canvas.addEventListener('click',e=>{
   initAudio();
@@ -844,8 +1283,7 @@ canvas.addEventListener('click',e=>{
   placeStone(pos[0],pos[1],BLACK);
 });
 canvas.addEventListener('touchstart',e=>{
-  e.preventDefault();
-  initAudio();
+  e.preventDefault();initAudio();
   if(gameOver||turn!==BLACK)return;
   const pos=getGridPos(e);
   if(!pos)return;
@@ -866,14 +1304,13 @@ function gameLoop(){
   if(placingAnim){placingAnim.t=Math.min(1,placingAnim.t+.15);if(placingAnim.t>=1)placingAnim=null}
   updateParticles();
   drawBoard(null);
-  requestAnimationFrame(gameLoop);
+  animFrameId=requestAnimationFrame(gameLoop);
 }
 
 // ===== INIT =====
-window.addEventListener('resize',resizeCanvas);
-newGame();
-resizeCanvas();
-gameLoop();
+window.addEventListener('resize',()=>{
+  if(document.getElementById('app').classList.contains('show'))resizeCanvas();
+});
 </script>
 </body>
 </html>
