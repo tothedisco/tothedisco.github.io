@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>바둑 - 9×9</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+:root{
+  --bg:#1a1a2e;--bg2:#16213e;--accent:#e2b714;--accent2:#f0c040;
+  --board:#dcb35c;--board2:#c9a24a;--board-dark:#b8913a;
+  --text:#e0e0e0;--text-dim:#888;--panel:#0f3460;--panel2:#1a1a40;
+  --danger:#e74c3c;--success:#2ecc71;
+}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:'Noto Sans KR',sans-serif;
+  background:var(--bg);color:var(--text);
+  display:flex;flex-direction:column;align-items:center;
+  user-select:none;-webkit-user-select:none;
+}
+#app{
+  display:flex;flex-direction:column;align-items:center;
+  width:100%;max-width:900px;height:100vh;padding:8px;
+  gap:6px;
+}
+/* Top bar */
+#topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  width:100%;padding:8px 16px;
+  background:linear-gradient(135deg,var(--panel),var(--panel2));
+  border-radius:12px;border:1px solid rgba(255,255,255,.06);
+  flex-shrink:0;
+}
+.player-info{display:flex;align-items:center;gap:10px}
+.stone-icon{width:28px;height:28px;border-radius:50%;flex-shrink:0}
+.stone-icon.black{background:radial-gradient(circle at 35% 30%,#666,#111 70%)}
+.stone-icon.white{background:radial-gradient(circle at 35% 30%,#fff,#ccc 70%);border:1px solid #999}
+.player-info .name{font-weight:500;font-size:14px}
+.player-info .captures{font-size:12px;color:var(--accent)}
+#turn-indicator{
+  font-size:13px;font-weight:500;padding:4px 14px;
+  border-radius:20px;background:rgba(226,183,20,.15);color:var(--accent);
+  white-space:nowrap;
+}
+/* Main area */
+#main{
+  display:flex;gap:10px;flex:1;width:100%;min-height:0;
+  align-items:flex-start;justify-content:center;
+}
+/* Canvas wrapper */
+#board-wrap{
+  position:relative;flex-shrink:0;
+  border-radius:12px;overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05);
+}
+canvas{display:block;cursor:pointer}
+/* Side panel */
+#side{
+  display:flex;flex-direction:column;gap:8px;
+  width:200px;flex-shrink:0;min-height:0;max-height:100%;
+}
+#move-log{
+  flex:1;min-height:0;overflow-y:auto;
+  background:linear-gradient(135deg,var(--panel),var(--panel2));
+  border-radius:12px;padding:10px;border:1px solid rgba(255,255,255,.06);
+  font-size:12px;line-height:1.8;
+}
+#move-log .title{font-weight:700;color:var(--accent);margin-bottom:6px;font-size:13px}
+#move-log .entry{color:var(--text-dim)}
+#move-log .entry.black{color:var(--text)}
+#move-log .entry.white{color:#aaa}
+/* Buttons */
+#buttons{
+  display:flex;flex-wrap:wrap;gap:6px;width:100%;flex-shrink:0;
+}
+#buttons button{
+  flex:1 1 45%;padding:10px 6px;
+  font-family:inherit;font-size:13px;font-weight:500;
+  border:1px solid rgba(255,255,255,.1);border-radius:10px;
+  background:linear-gradient(135deg,var(--panel),var(--panel2));
+  color:var(--text);cursor:pointer;transition:all .2s;
+  white-space:nowrap;
+}
+#buttons button:hover{background:var(--panel);border-color:var(--accent);color:var(--accent)}
+#buttons button:active{transform:scale(.96)}
+#buttons button.danger{border-color:rgba(231,76,60,.3)}
+#buttons button.danger:hover{border-color:var(--danger);color:var(--danger)}
+/* Guide toggle */
+#guide-wrap{
+  display:flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,var(--panel),var(--panel2));
+  border-radius:10px;padding:8px 12px;border:1px solid rgba(255,255,255,.06);
+  font-size:12px;flex-shrink:0;
+}
+.toggle{
+  width:36px;height:20px;border-radius:10px;
+  background:#444;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;
+}
+.toggle.on{background:var(--accent)}
+.toggle::after{
+  content:'';position:absolute;top:2px;left:2px;
+  width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s;
+}
+.toggle.on::after{left:18px}
+/* Sound toggle */
+#sound-wrap{
+  display:flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,var(--panel),var(--panel2));
+  border-radius:10px;padding:8px 12px;border:1px solid rgba(255,255,255,.06);
+  font-size:12px;flex-shrink:0;
+}
+/* Game over overlay */
+#overlay{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.7);display:none;
+  justify-content:center;align-items:center;z-index:100;
+  backdrop-filter:blur(4px);
+}
+#overlay.show{display:flex}
+#result-box{
+  background:linear-gradient(135deg,#1a1a40,#0f3460);
+  border:1px solid rgba(226,183,20,.3);border-radius:20px;
+  padding:32px 40px;text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+  animation:popIn .4s ease;max-width:90vw;
+}
+@keyframes popIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+#result-box h2{font-size:28px;margin-bottom:8px;color:var(--accent)}
+#result-box .score{font-size:16px;margin:12px 0;line-height:1.8}
+#result-box button{
+  margin-top:16px;padding:12px 32px;
+  font-family:inherit;font-size:15px;font-weight:700;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#1a1a2e;border:none;border-radius:12px;cursor:pointer;
+  transition:transform .2s;
+}
+#result-box button:hover{transform:scale(1.05)}
+/* Confetti canvas */
+#confetti{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:101}
+/* Mobile */
+@media(max-width:700px){
+  #app{padding:4px;gap:4px}
+  #main{flex-direction:column;align-items:center}
+  #side{width:100%;flex-direction:row;flex-wrap:wrap;max-height:none}
+  #move-log{max-height:100px;flex:1 1 100%}
+  #buttons{flex:1 1 100%}
+  #guide-wrap,#sound-wrap{flex:1 1 45%}
+  #topbar{padding:6px 10px}
+  .player-info .name{font-size:12px}
+  #turn-indicator{font-size:11px;padding:3px 10px}
+}
+/* Scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div class="player-info">
+      <div class="stone-icon black"></div>
+      <div><div class="name">당신 (흑)</div><div class="captures" id="black-captures">잡은 돌: 0</div></div>
+    </div>
+    <div id="turn-indicator">● 흑 차례</div>
+    <div class="player-info" style="flex-direction:row-reverse;text-align:right">
+      <div class="stone-icon white"></div>
+      <div><div class="name">AI (백)</div><div class="captures" id="white-captures">잡은 돌: 0</div></div>
+    </div>
+  </div>
+  <div id="main">
+    <div id="board-wrap"><canvas id="board"></canvas></div>
+    <div id="side">
+      <div id="guide-wrap">
+        <div class="toggle" id="guide-toggle"></div>
+        <span>초보 가이드</span>
+      </div>
+      <div id="sound-wrap">
+        <div class="toggle on" id="sound-toggle"></div>
+        <span>사운드</span>
+      </div>
+      <div id="move-log"><div class="title">📜 착수 기록</div></div>
+      <div id="buttons">
+        <button onclick="doPass()">패스</button>
+        <button onclick="doUndo()">무르기</button>
+        <button onclick="newGame()">새 게임</button>
+        <button class="danger" onclick="doResign()">항복</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="overlay"><div id="result-box"></div></div>
+<canvas id="confetti"></canvas>
+
+<script>
+// ===== CONSTANTS =====
+const SZ=9,EMPTY=0,BLACK=1,WHITE=2;
+const COLS='ABCDEFGHJ'; // I is skipped in Go
+const STAR_POINTS=[[2,2],[2,6],[6,2],[6,6],[4,4]];
+
+// ===== AUDIO =====
+let audioCtx=null, soundOn=true;
+function initAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)()}
+function playSound(type){
+  if(!soundOn||!audioCtx)return;
+  const t=audioCtx.currentTime;
+  if(type==='place'){
+    // "톡" stone placement
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='sine';o.frequency.setValueAtTime(800+Math.random()*200,t);
+    o.frequency.exponentialRampToValueAtTime(200,t+.08);
+    g.gain.setValueAtTime(.3,t);g.gain.exponentialRampToValueAtTime(.001,t+.1);
+    o.connect(g);g.connect(audioCtx.destination);
+    o.start(t);o.stop(t+.1);
+    // Click noise
+    const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*.02,audioCtx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(d.length*.15));
+    const n=audioCtx.createBufferSource(),g2=audioCtx.createGain();
+    n.buffer=buf;g2.gain.setValueAtTime(.4,t);g2.gain.exponentialRampToValueAtTime(.001,t+.05);
+    n.connect(g2);g2.connect(audioCtx.destination);n.start(t);
+  } else if(type==='capture'){
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='triangle';o.frequency.setValueAtTime(600,t);
+    o.frequency.exponentialRampToValueAtTime(150,t+.2);
+    g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.001,t+.25);
+    o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+.25);
+  } else if(type==='end'){
+    [523,659,784].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.type='sine';o.frequency.value=f;
+      g.gain.setValueAtTime(0,t+i*.15);
+      g.gain.linearRampToValueAtTime(.2,t+i*.15+.05);
+      g.gain.exponentialRampToValueAtTime(.001,t+i*.15+.4);
+      o.connect(g);g.connect(audioCtx.destination);
+      o.start(t+i*.15);o.stop(t+i*.15+.4);
+    });
+  }
+}
+
+// ===== GAME STATE =====
+let board=[], turn=BLACK, captures={1:0,2:0};
+let history=[], koPoint=null, lastMove=null;
+let consecutivePasses=0, gameOver=false;
+let guideOn=false;
+let particles=[], placingAnim=null;
+
+function newBoard(){return Array.from({length:SZ},()=>new Int8Array(SZ))}
+function copyBoard(b){return b.map(r=>new Int8Array(r))}
+function boardKey(b){return b.map(r=>r.join('')).join('|')}
+
+// ===== GO LOGIC =====
+function neighbors(x,y){
+  const n=[];
+  if(x>0)n.push([x-1,y]);if(x<SZ-1)n.push([x+1,y]);
+  if(y>0)n.push([x,y-1]);if(y<SZ-1)n.push([x,y+1]);
+  return n;
+}
+
+function getGroup(b,x,y){
+  const color=b[y][x];if(color===EMPTY)return{stones:[],liberties:new Set()};
+  const visited=new Set(),libs=new Set(),stones=[];
+  const stack=[[x,y]];
+  while(stack.length){
+    const[cx,cy]=stack.pop();
+    const k=cy*SZ+cx;
+    if(visited.has(k))continue;visited.add(k);
+    stones.push([cx,cy]);
+    for(const[nx,ny]of neighbors(cx,cy)){
+      if(b[ny][nx]===EMPTY)libs.add(ny*SZ+nx);
+      else if(b[ny][nx]===color&&!visited.has(ny*SZ+nx))stack.push([nx,ny]);
+    }
+  }
+  return{stones,liberties:libs};
+}
+
+function removeGroup(b,stones){
+  for(const[x,y]of stones)b[y][x]=EMPTY;
+}
+
+function tryMove(b,x,y,color,koP){
+  if(b[y][x]!==EMPTY)return null;
+  const nb=copyBoard(b);
+  nb[y][x]=color;
+  const opp=color===BLACK?WHITE:BLACK;
+  let captured=[];
+  // Remove opponent groups with 0 liberties
+  for(const[nx,ny]of neighbors(x,y)){
+    if(nb[ny][nx]===opp){
+      const g=getGroup(nb,nx,ny);
+      if(g.liberties.size===0){captured.push(...g.stones);removeGroup(nb,g.stones)}
+    }
+  }
+  // Check self-capture (suicide)
+  const self=getGroup(nb,x,y);
+  if(self.liberties.size===0)return null;
+  // Ko check
+  if(koP&&captured.length===1&&captured[0][0]===koP[0]&&captured[0][1]===koP[1]){
+    // More precise: check if board state matches
+    // Simple ko: captured exactly 1, and placing on previous ko point
+    return null;
+  }
+  let newKo=null;
+  if(captured.length===1){
+    // Check if this creates a ko situation
+    const g2=getGroup(nb,x,y);
+    if(g2.stones.length===1)newKo=[captured[0][0],captured[0][1]];
+  }
+  return{board:nb,captured,ko:newKo};
+}
+
+function isValidMove(b,x,y,color,koP){
+  return tryMove(b,x,y,color,koP)!==null;
+}
+
+// ===== SCORING =====
+function scoreGame(b){
+  const territory=Array.from({length:SZ},()=>new Int8Array(SZ));
+  const visited=new Set();
+  for(let y=0;y<SZ;y++)for(let x=0;x<SZ;x++){
+    if(b[y][x]!==EMPTY||visited.has(y*SZ+x))continue;
+    // Flood fill empty region
+    const region=[],adj=new Set();
+    const stack=[[x,y]];
+    while(stack.length){
+      const[cx,cy]=stack.pop();
+      const k=cy*SZ+cx;
+      if(visited.has(k))continue;visited.add(k);
+      region.push([cx,cy]);
+      for(const[nx,ny]of neighbors(cx,cy)){
+        if(b[ny][nx]===EMPTY&&!visited.has(ny*SZ+nx))stack.push([nx,ny]);
+        else if(b[ny][nx]!==EMPTY)adj.add(b[ny][nx]);
+      }
+    }
+    // If only one color adjacent, it's that color's territory
+    if(adj.size===1){
+      const owner=[...adj][0];
+      for(const[rx,ry]of region)territory[ry][rx]=owner;
+    }
+  }
+  let blackScore=captures[BLACK], whiteScore=captures[WHITE]+6.5; // komi
+  for(let y=0;y<SZ;y++)for(let x=0;x<SZ;x++){
+    if(territory[y][x]===BLACK)blackScore++;
+    else if(territory[y][x]===WHITE)whiteScore++;
+  }
+  return{blackScore,whiteScore,territory};
+}
+
+// ===== AI =====
+function aiMove(){
+  if(gameOver)return;
+  const moves=[];
+  for(let y=0;y<SZ;y++)for(let x=0;x<SZ;x++){
+    if(isValidMove(board,x,y,WHITE,koPoint))moves.push([x,y]);
+  }
+  if(moves.length===0){doAIPass();return}
+
+  // Score each move
+  let best=null,bestScore=-Infinity;
+  const scored=[];
+  for(const[x,y]of moves){
+    let score=0;
+    const result=tryMove(board,x,y,WHITE,koPoint);
+    if(!result)continue;
+
+    // 1) Capture (high priority)
+    score+=result.captured.length*15;
+
+    // 2) Save own group in atari
+    for(const[nx,ny]of neighbors(x,y)){
+      if(board[ny][nx]===WHITE){
+        const g=getGroup(board,nx,ny);
+        if(g.liberties.size===1)score+=12;
+      }
+    }
+
+    // 3) Atari opponent
+    for(const[nx,ny]of neighbors(x,y)){
+      if(result.board[ny][nx]===BLACK){
+        const g=getGroup(result.board,nx,ny);
+        if(g.liberties.size===1)score+=8;
+      }
+    }
+
+    // 4) Liberties of placed stone
+    const g=getGroup(result.board,x,y);
+    score+=Math.min(g.liberties.size,4)*1.5;
+
+    // 5) Prefer center-ish
+    const cx=x-4,cy=y-4;
+    score-=(Math.abs(cx)+Math.abs(cy))*.3;
+
+    // 6) Avoid edges early in game (first 10 moves)
+    if(history.length<20&&(x===0||x===8||y===0||y===8))score-=3;
+
+    // 7) Proximity to existing stones (territorial)
+    for(const[nx,ny]of neighbors(x,y)){
+      if(board[ny][nx]===WHITE)score+=2;
+      if(board[ny][nx]===BLACK)score+=1;
+    }
+
+    // 8) Don't fill own eye
+    let ownAdj=0,adjCount=0;
+    for(const[nx,ny]of neighbors(x,y)){
+      adjCount++;
+      if(board[ny][nx]===WHITE)ownAdj++;
+    }
+    if(ownAdj===adjCount&&adjCount>=2)score-=20;
+
+    // Add randomness so it's not too deterministic
+    score+=Math.random()*4;
+
+    scored.push({x,y,score});
+  }
+
+  scored.sort((a,b)=>b.score-a.score);
+
+  // Sometimes make suboptimal move (beginner AI)
+  let pick=scored[0];
+  if(scored.length>1&&Math.random()<.25)pick=scored[Math.min(1,scored.length-1)];
+  if(scored.length>2&&Math.random()<.1)pick=scored[Math.min(2,scored.length-1)];
+
+  if(pick)placeStone(pick.x,pick.y,WHITE);
+  else doAIPass();
+}
+
+function doAIPass(){
+  consecutivePasses++;
+  addLog('패스','white');
+  turn=BLACK;
+  updateUI();
+  if(consecutivePasses>=2)endGame();
+}
+
+// ===== GUIDE (hint) =====
+function getHints(){
+  if(!guideOn||gameOver||turn!==BLACK)return[];
+  const hints=[];
+  for(let y=0;y<SZ;y++)for(let x=0;x<SZ;x++){
+    if(!isValidMove(board,x,y,BLACK,koPoint))continue;
+    const result=tryMove(board,x,y,BLACK,koPoint);
+    if(!result)continue;
+    let score=0;
+    score+=result.captured.length*15;
+    for(const[nx,ny]of neighbors(x,y)){
+      if(board[ny][nx]===BLACK){
+        const g=getGroup(board,nx,ny);
+        if(g.liberties.size===1)score+=12;
+      }
+    }
+    const g=getGroup(result.board,x,y);
+    score+=Math.min(g.liberties.size,4)*2;
+    if(score>=8)hints.push({x,y,score});
+  }
+  hints.sort((a,b)=>b.score-a.score);
+  return hints.slice(0,3);
+}
+
+// ===== PLACE STONE =====
+function placeStone(x,y,color){
+  const result=tryMove(board,x,y,color,koPoint);
+  if(!result)return false;
+
+  // Save history for undo
+  history.push({board:copyBoard(board),captures:{...captures},koPoint,lastMove,turn:color,consecutivePasses});
+
+  board=result.board;
+  koPoint=result.ko;
+  lastMove=[x,y];
+  consecutivePasses=0;
+
+  if(result.captured.length>0){
+    captures[color]+=result.captured.length;
+    playSound('capture');
+    // Particles for captured stones
+    for(const[cx,cy]of result.captured){
+      spawnParticles(cx,cy,color===BLACK?WHITE:BLACK);
+    }
+  } else {
+    playSound('place');
+  }
+
+  // Place animation
+  placingAnim={x,y,t:0,color};
+
+  const coord=COLS[x]+(SZ-y);
+  addLog(`${coord}`,color===BLACK?'black':'white');
+
+  turn=color===BLACK?WHITE:BLACK;
+  updateUI();
+
+  if(color===BLACK&&!gameOver){
+    setTimeout(()=>{if(!gameOver)aiMove()},500);
+  }
+  return true;
+}
+
+// ===== ACTIONS =====
+function doPass(){
+  if(gameOver||turn!==BLACK)return;
+  initAudio();
+  consecutivePasses++;
+  history.push({board:copyBoard(board),captures:{...captures},koPoint,lastMove,turn:BLACK,consecutivePasses:consecutivePasses-1});
+  addLog('패스','black');
+  turn=WHITE;
+  updateUI();
+  if(consecutivePasses>=2){endGame();return}
+  setTimeout(()=>{if(!gameOver)aiMove()},500);
+}
+
+function doUndo(){
+  if(gameOver||history.length<2)return;
+  // Undo AI move and player move
+  history.pop(); // AI
+  const prev=history.pop(); // Player
+  board=prev.board;captures=prev.captures;koPoint=prev.koPoint;
+  lastMove=prev.lastMove;turn=BLACK;consecutivePasses=prev.consecutivePasses;
+  // Remove last 2 log entries
+  const log=document.getElementById('move-log');
+  const entries=log.querySelectorAll('.entry');
+  if(entries.length>=1)entries[entries.length-1].remove();
+  if(entries.length>=2)entries[entries.length-2].remove();
+  updateUI();
+}
+
+function doResign(){
+  if(gameOver)return;
+  gameOver=true;
+  showResult('AI (백) 승리!','당신이 항복했습니다.',null);
+}
+
+function newGame(){
+  board=newBoard();turn=BLACK;captures={1:0,2:0};
+  history=[];koPoint=null;lastMove=null;
+  consecutivePasses=0;gameOver=false;particles=[];placingAnim=null;
+  document.getElementById('move-log').innerHTML='<div class="title">📜 착수 기록</div>';
+  document.getElementById('overlay').classList.remove('show');
+  updateUI();
+}
+
+function endGame(){
+  gameOver=true;
+  const{blackScore,whiteScore,territory}=scoreGame(board);
+  playSound('end');
+  const winner=blackScore>whiteScore?'당신 (흑) 승리! 🎉':'AI (백) 승리!';
+  const detail=`흑: ${blackScore.toFixed(1)}점\n백: ${whiteScore.toFixed(1)}점 (덤 6.5)`;
+  showResult(winner,detail,territory);
+  if(blackScore>whiteScore)launchConfetti();
+}
+
+function showResult(title,detail,territory){
+  const box=document.getElementById('result-box');
+  if(territory){
+    // Draw territory on board
+    drawBoard(territory);
+  }
+  box.innerHTML=`<h2>${title}</h2><div class="score">${detail.replace(/\n/g,'<br>')}</div>
+    <button onclick="newGame()">새 게임</button>`;
+  document.getElementById('overlay').classList.add('show');
+}
+
+function addLog(text,cls){
+  const log=document.getElementById('move-log');
+  const moveNum=log.querySelectorAll('.entry').length+1;
+  const d=document.createElement('div');
+  d.className='entry '+cls;
+  d.textContent=`${moveNum}. ${cls==='black'?'⚫':'⚪'} ${text}`;
+  log.appendChild(d);
+  log.scrollTop=log.scrollHeight;
+}
+
+function updateUI(){
+  document.getElementById('black-captures').textContent=`잡은 돌: ${captures[BLACK]}`;
+  document.getElementById('white-captures').textContent=`잡은 돌: ${captures[WHITE]}`;
+  document.getElementById('turn-indicator').textContent=gameOver?'게임 종료':(turn===BLACK?'● 흑 차례':'○ 백 차례');
+}
+
+// ===== CANVAS RENDERING =====
+const canvas=document.getElementById('board');
+const ctx=canvas.getContext('2d');
+let cellSize,padding,boardPx,hoverPos=null;
+
+function resizeCanvas(){
+  const wrap=document.getElementById('board-wrap');
+  const mainEl=document.getElementById('main');
+  const side=document.getElementById('side');
+  // Calculate available space
+  const appH=document.getElementById('app').clientHeight;
+  const topH=document.getElementById('topbar').offsetHeight;
+  const availH=appH-topH-20;
+  let availW=mainEl.clientWidth;
+  // Check if side panel is beside or below
+  const isMobile=window.innerWidth<=700;
+  if(!isMobile)availW-=220;
+  let sz=Math.min(availW,availH);
+  sz=Math.max(sz,280);
+  sz=Math.min(sz,600);
+  canvas.width=canvas.height=sz*devicePixelRatio;
+  canvas.style.width=canvas.style.height=sz+'px';
+  boardPx=sz;
+  padding=sz*.07;
+  cellSize=(sz-padding*2)/(SZ-1);
+}
+
+function drawBoard(territory){
+  resizeCanvas();
+  const W=canvas.width,s=devicePixelRatio;
+  ctx.save();ctx.scale(s,s);
+
+  // Board background - wood texture
+  const woodGrad=ctx.createLinearGradient(0,0,boardPx,boardPx);
+  woodGrad.addColorStop(0,'#e8c36a');woodGrad.addColorStop(.3,'#d4a843');
+  woodGrad.addColorStop(.5,'#dbb355');woodGrad.addColorStop(.7,'#c99b3a');
+  woodGrad.addColorStop(1,'#e0b850');
+  ctx.fillStyle=woodGrad;
+  ctx.fillRect(0,0,boardPx,boardPx);
+
+  // Wood grain lines
+  ctx.strokeStyle='rgba(160,120,50,.12)';
+  ctx.lineWidth=1;
+  for(let i=0;i<40;i++){
+    const y=i*(boardPx/40)+Math.sin(i*.7)*3;
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    for(let x=0;x<boardPx;x+=10){
+      ctx.lineTo(x,y+Math.sin(x*.02+i)*2);
+    }
+    ctx.stroke();
+  }
+
+  const p=padding,cs=cellSize;
+
+  // Grid lines
+  ctx.strokeStyle='rgba(0,0,0,.65)';
+  ctx.lineWidth=1;
+  for(let i=0;i<SZ;i++){
+    ctx.beginPath();ctx.moveTo(p+i*cs,p);ctx.lineTo(p+i*cs,p+(SZ-1)*cs);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(p,p+i*cs);ctx.lineTo(p+(SZ-1)*cs,p+i*cs);ctx.stroke();
+  }
+
+  // Outer border (thicker)
+  ctx.strokeStyle='rgba(0,0,0,.8)';
+  ctx.lineWidth=2;
+  ctx.strokeRect(p,p,(SZ-1)*cs,(SZ-1)*cs);
+
+  // Star points
+  for(const[sx,sy]of STAR_POINTS){
+    ctx.fillStyle='rgba(0,0,0,.75)';
+    ctx.beginPath();ctx.arc(p+sx*cs,p+sy*cs,cs*.1,0,Math.PI*2);ctx.fill();
+  }
+
+  // Coordinates
+  ctx.fillStyle='rgba(0,0,0,.45)';
+  ctx.font=`${Math.max(10,cs*.28)}px 'Noto Sans KR',sans-serif`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  for(let i=0;i<SZ;i++){
+    ctx.fillText(COLS[i],p+i*cs,p-cs*.5);
+    ctx.fillText(COLS[i],p+i*cs,p+(SZ-1)*cs+cs*.5);
+    ctx.fillText(''+(SZ-i),p-cs*.55,p+i*cs);
+    ctx.fillText(''+(SZ-i),p+(SZ-1)*cs+cs*.55,p+i*cs);
+  }
+
+  // Territory overlay
+  if(territory){
+    for(let y=0;y<SZ;y++)for(let x=0;x<SZ;x++){
+      if(territory[y][x]===BLACK){
+        ctx.fillStyle='rgba(0,0,0,.25)';
+        ctx.fillRect(p+x*cs-cs*.4,p+y*cs-cs*.4,cs*.8,cs*.8);
+      } else if(territory[y][x]===WHITE){
+        ctx.fillStyle='rgba(255,255,255,.3)';
+        ctx.fillRect(p+x*cs-cs*.4,p+y*cs-cs*.4,cs*.8,cs*.8);
+      }
+    }
+  }
+
+  // Guide hints
+  if(guideOn&&!territory){
+    const hints=getHints();
+    for(const h of hints){
+      ctx.fillStyle='rgba(0,0,0,.15)';
+      ctx.beginPath();ctx.arc(p+h.x*cs,p+h.y*cs,cs*.38,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='rgba(226,183,20,.5)';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(p+h.x*cs,p+h.y*cs,cs*.38,0,Math.PI*2);ctx.stroke();
+    }
+  }
+
+  // Stones
+  const stoneR=cs*.44;
+  for(let y=0;y<SZ;y++)for(let x=0;x<SZ;x++){
+    if(board[y][x]===EMPTY)continue;
+    const px=p+x*cs,py=p+y*cs;
+    let scale=1;
+    // Placing animation
+    if(placingAnim&&placingAnim.x===x&&placingAnim.y===y&&placingAnim.t<1){
+      scale=placingAnim.t;
+    }
+    drawStone(px,py,stoneR*scale,board[y][x]);
+  }
+
+  // Last move marker
+  if(lastMove&&!territory){
+    const[lx,ly]=lastMove;
+    const px=p+lx*cs,py=p+ly*cs;
+    ctx.fillStyle=board[ly][lx]===BLACK?'rgba(255,60,60,.85)':'rgba(255,60,60,.85)';
+    ctx.beginPath();
+    // Small triangle
+    const ms=cs*.15;
+    ctx.moveTo(px,py-ms);ctx.lineTo(px-ms*.87,py+ms*.5);ctx.lineTo(px+ms*.87,py+ms*.5);
+    ctx.closePath();ctx.fill();
+  }
+
+  // Hover preview
+  if(hoverPos&&!gameOver&&turn===BLACK&&!territory){
+    const[hx,hy]=hoverPos;
+    if(board[hy][hx]===EMPTY&&isValidMove(board,hx,hy,BLACK,koPoint)){
+      ctx.globalAlpha=.35;
+      drawStone(p+hx*cs,p+hy*cs,stoneR,BLACK);
+      ctx.globalAlpha=1;
+    }
+  }
+
+  // Particles
+  for(const pt of particles){
+    ctx.fillStyle=pt.color===BLACK?`rgba(30,30,30,${pt.alpha})`:`rgba(240,240,240,${pt.alpha})`;
+    ctx.beginPath();ctx.arc(pt.px,pt.py,pt.r,0,Math.PI*2);ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawStone(cx,cy,r,color){
+  if(r<=0)return;
+  ctx.save();
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,.3)';
+  ctx.beginPath();ctx.arc(cx+2,cy+2,r,0,Math.PI*2);ctx.fill();
+
+  if(color===BLACK){
+    const g=ctx.createRadialGradient(cx-r*.3,cy-r*.3,r*.1,cx,cy,r);
+    g.addColorStop(0,'#555');g.addColorStop(.4,'#333');g.addColorStop(1,'#111');
+    ctx.fillStyle=g;
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+    // Highlight
+    const h=ctx.createRadialGradient(cx-r*.3,cy-r*.35,0,cx-r*.3,cy-r*.35,r*.5);
+    h.addColorStop(0,'rgba(255,255,255,.25)');h.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=h;
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+  } else {
+    const g=ctx.createRadialGradient(cx-r*.3,cy-r*.3,r*.1,cx,cy,r);
+    g.addColorStop(0,'#fff');g.addColorStop(.6,'#eee');g.addColorStop(1,'#ccc');
+    ctx.fillStyle=g;
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+    // Subtle highlight
+    const h=ctx.createRadialGradient(cx-r*.25,cy-r*.3,0,cx-r*.25,cy-r*.3,r*.4);
+    h.addColorStop(0,'rgba(255,255,255,.7)');h.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=h;
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ===== PARTICLES =====
+function spawnParticles(gx,gy,color){
+  const px=padding+gx*cellSize,py=padding+gy*cellSize;
+  for(let i=0;i<8;i++){
+    const angle=Math.random()*Math.PI*2;
+    const speed=1+Math.random()*3;
+    particles.push({
+      px,py,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
+      r:2+Math.random()*3,alpha:1,color
+    });
+  }
+}
+
+function updateParticles(){
+  for(let i=particles.length-1;i>=0;i--){
+    const pt=particles[i];
+    pt.px+=pt.vx;pt.py+=pt.vy;pt.vy+=.1;pt.alpha-=.03;pt.r*=.97;
+    if(pt.alpha<=0)particles.splice(i,1);
+  }
+}
+
+// ===== CONFETTI =====
+function launchConfetti(){
+  const cc=document.getElementById('confetti');
+  cc.width=window.innerWidth*devicePixelRatio;
+  cc.height=window.innerHeight*devicePixelRatio;
+  cc.style.width=window.innerWidth+'px';
+  cc.style.height=window.innerHeight+'px';
+  const cctx=cc.getContext('2d');
+  const pieces=[];
+  const colors=['#e2b714','#f0c040','#ff6b6b','#51cf66','#339af0','#cc5de8','#ff922b'];
+  for(let i=0;i<120;i++){
+    pieces.push({
+      x:Math.random()*cc.width,y:-Math.random()*cc.height*.5,
+      vx:(Math.random()-.5)*8,vy:Math.random()*4+2,
+      r:3+Math.random()*5,color:colors[Math.floor(Math.random()*colors.length)],
+      rot:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.2,
+      w:4+Math.random()*8,h:4+Math.random()*4,
+    });
+  }
+  let frames=0;
+  function animConfetti(){
+    if(frames++>180){cctx.clearRect(0,0,cc.width,cc.height);return}
+    cctx.clearRect(0,0,cc.width,cc.height);
+    cctx.save();cctx.scale(devicePixelRatio,devicePixelRatio);
+    for(const p of pieces){
+      p.x+=p.vx;p.y+=p.vy;p.vy+=.15;p.rot+=p.vr;
+      cctx.save();cctx.translate(p.x/devicePixelRatio,p.y/devicePixelRatio);
+      cctx.rotate(p.rot);cctx.fillStyle=p.color;
+      cctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      cctx.restore();
+    }
+    cctx.restore();
+    requestAnimationFrame(animConfetti);
+  }
+  animConfetti();
+}
+
+// ===== INPUT =====
+function getGridPos(e){
+  const rect=canvas.getBoundingClientRect();
+  const ex=e.touches?e.touches[0].clientX:e.clientX;
+  const ey=e.touches?e.touches[0].clientY:e.clientY;
+  const mx=ex-rect.left, my=ey-rect.top;
+  const gx=Math.round((mx-padding)/cellSize);
+  const gy=Math.round((my-padding)/cellSize);
+  if(gx<0||gx>=SZ||gy<0||gy>=SZ)return null;
+  return[gx,gy];
+}
+
+canvas.addEventListener('mousemove',e=>{
+  const pos=getGridPos(e);
+  hoverPos=pos;
+});
+canvas.addEventListener('mouseleave',()=>{hoverPos=null});
+canvas.addEventListener('click',e=>{
+  initAudio();
+  if(gameOver||turn!==BLACK)return;
+  const pos=getGridPos(e);
+  if(!pos)return;
+  placeStone(pos[0],pos[1],BLACK);
+});
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  initAudio();
+  if(gameOver||turn!==BLACK)return;
+  const pos=getGridPos(e);
+  if(!pos)return;
+  placeStone(pos[0],pos[1],BLACK);
+},{passive:false});
+
+// Toggles
+document.getElementById('guide-toggle').addEventListener('click',function(){
+  guideOn=!guideOn;this.classList.toggle('on',guideOn);
+});
+document.getElementById('sound-toggle').addEventListener('click',function(){
+  soundOn=!soundOn;this.classList.toggle('on',soundOn);
+  if(soundOn)initAudio();
+});
+
+// ===== ANIMATION LOOP =====
+function gameLoop(){
+  if(placingAnim){placingAnim.t=Math.min(1,placingAnim.t+.15);if(placingAnim.t>=1)placingAnim=null}
+  updateParticles();
+  drawBoard(null);
+  requestAnimationFrame(gameLoop);
+}
+
+// ===== INIT =====
+window.addEventListener('resize',resizeCanvas);
+newGame();
+resizeCanvas();
+gameLoop();
+</script>
+</body>
+</html>
